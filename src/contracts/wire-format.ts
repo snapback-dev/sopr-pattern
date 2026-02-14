@@ -250,16 +250,19 @@ function splitUnescaped(input: string, delimiter: string): string[] {
   let current = "";
 
   for (let i = 0; i < input.length; i++) {
+    const char = input[i] as string; // safe: i < input.length
+    const nextChar = input[i + 1];
+
     // Check if this position is an escaped delimiter
-    if (input[i] === "\\" && input[i + 1] === delimiter) {
+    if (char === "\\" && nextChar === delimiter) {
       // Keep the escaped sequence intact for later unescaping
       current += "\\" + delimiter;
       i++; // skip next char
-    } else if (input[i] === delimiter) {
+    } else if (char === delimiter) {
       results.push(current);
       current = "";
     } else {
-      current += input[i];
+      current += char;
     }
   }
 

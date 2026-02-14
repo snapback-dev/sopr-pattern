@@ -105,26 +105,34 @@ export function withResilience<TInput, TOutput>(
 ): (input: TInput) => Promise<TOutput | null> {
   const logger = config?.logger;
 
+  // Extract config values, normalising `false` (disabled) to `undefined`.
+  const retryOpt = config?.retry === false ? undefined : config?.retry;
+  const concurrencyOpt =
+    config?.concurrency === false ? undefined : config?.concurrency;
+  const breakerOpt =
+    config?.circuitBreaker === false ? undefined : config?.circuitBreaker;
+
+  const retryDisabled = config?.retry === false;
+  const concurrencyDisabled = config?.concurrency === false;
+  const breakerDisabled = config?.circuitBreaker === false;
+
   // -- Layer 1: Build the retry wrapper (innermost) -----------------------
   let retryWrapped: (input: TInput) => Promise<TOutput>;
 
-  if (config?.retry === false) {
+  if (retryDisabled) {
     retryWrapped = fn;
   } else {
-    const retryConfig = config?.retry === false ? undefined : config?.retry;
     retryWrapped = (input: TInput) =>
-      withRetry(() => fn(input), retryConfig ?? undefined);
+      withRetry(() => fn(input), retryOpt);
   }
 
   // -- Layer 2: Concurrency limiter --------------------------------------
   let concurrencyWrapped: (input: TInput) => Promise<TOutput>;
 
-  if (config?.concurrency === false) {
+  if (concurrencyDisabled) {
     concurrencyWrapped = retryWrapped;
   } else {
-    const limiter = new ConcurrencyLimiter(
-      config?.concurrency === false ? undefined : config?.concurrency ?? undefined,
-    );
+    const limiter = new ConcurrencyLimiter(concurrencyOpt);
     concurrencyWrapped = (input: TInput) =>
       limiter.execute(() => retryWrapped(input));
   }
@@ -132,14 +140,14 @@ export function withResilience<TInput, TOutput>(
   // -- Layer 3: Circuit breaker -------------------------------------------
   let breakerWrapped: (input: TInput) => Promise<TOutput>;
 
-  if (config?.circuitBreaker === false) {
+  if (breakerDisabled) {
     breakerWrapped = concurrencyWrapped;
   } else {
     const registry = config?.registry ?? createBreakerRegistry();
     breakerWrapped = registry.withCircuitBreaker<TInput, TOutput>(
       name,
       concurrencyWrapped,
-      config?.circuitBreaker === false ? undefined : config?.circuitBreaker ?? undefined,
+      breakerOpt,
     );
   }
 

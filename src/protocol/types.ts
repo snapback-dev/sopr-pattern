@@ -51,19 +51,20 @@ export interface ProtocolConfig {
  * if future tools require them.
  */
 export interface TextContent {
-  readonly type: "text";
-  readonly text: string;
+  type: "text";
+  text: string;
 }
 
 /**
  * Result shape returned from `tools/call` handlers.
  *
  * Conforms to the MCP `CallToolResult` schema: an array of content blocks
- * plus an optional `isError` flag.
+ * plus an optional `isError` flag. Field types are intentionally mutable
+ * to remain structurally compatible with the MCP SDK's inferred types.
  */
 export interface CallToolResult {
-  readonly content: readonly TextContent[];
-  readonly isError?: boolean;
+  content: TextContent[];
+  isError?: boolean;
 }
 
 // ---------------------------------------------------------------------------

@@ -190,10 +190,8 @@ export class ToolRegistry {
     const text =
       typeof result === "string" ? result : JSON.stringify(result, null, 2);
 
-    const content: TextContent[] = [{ type: "text" as const, text }];
+    const content: TextContent[] = [{ type: "text", text }];
 
-    return Object.freeze({
-      content: Object.freeze(content),
-    });
+    return { content };
   }
 }
