@@ -22,6 +22,7 @@
 
 import { describe, it, expect } from "vitest";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   collectTsFiles,
   parseImports,
@@ -33,10 +34,9 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const SRC_ROOT = path.resolve(
-  import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
-  "../../src",
-);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const SRC_ROOT = path.resolve(__dirname, "../../src");
 
 const PROTOCOL_DIR = path.join(SRC_ROOT, "protocol");
 const REGISTRY_DIR = path.join(SRC_ROOT, "registry");

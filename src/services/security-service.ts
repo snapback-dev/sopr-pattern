@@ -289,7 +289,6 @@ export class SecurityServiceImpl implements ISecurityService {
     rules: readonly SecurityRule[],
   ): SecurityFinding[] {
     const findings: SecurityFinding[] = [];
-    const lines = content.split("\n");
 
     for (const rule of rules) {
       // Reset the regex for each file (global flag requires reset)

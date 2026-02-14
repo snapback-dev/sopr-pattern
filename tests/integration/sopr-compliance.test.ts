@@ -14,6 +14,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   TOOL_MAP,
   TOOL_COUNT,
@@ -26,10 +27,9 @@ import { collectTsFiles } from "../helpers/index.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-const SRC_ROOT = path.resolve(
-  import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
-  "../../src",
-);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const SRC_ROOT = path.resolve(__dirname, "../../src");
 
 const CONTRACTS_DIR = path.join(SRC_ROOT, "contracts");
 

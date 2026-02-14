@@ -195,8 +195,6 @@ export class SnapshotServiceImpl implements ISnapshotService {
   async finalize(
     input: FinalizeSnapshotInput,
   ): Promise<ServiceResult<FinalizeSnapshotResult>> {
-    const startTime = Date.now();
-
     try {
       // Verify the snapshot exists
       const snapshotData = await this.storage.read(

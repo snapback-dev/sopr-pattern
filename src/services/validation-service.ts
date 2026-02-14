@@ -537,8 +537,9 @@ export class ValidationServiceImpl implements IValidationService {
       );
 
       let filtered = snapshots;
-      if (input.since) {
-        filtered = snapshots.filter((s) => s.timestamp >= input.since!);
+      if (input.since !== undefined) {
+        const since = input.since;
+        filtered = snapshots.filter((s) => s.timestamp >= since);
       }
 
       // Determine trend
