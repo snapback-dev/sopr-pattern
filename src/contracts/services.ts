@@ -631,7 +631,9 @@ export interface GraphHealthResult {
  */
 export interface IGraphService {
   /** Compute the module-level dependency graph. */
-  computeDependencyGraph(input: DependencyGraphInput): Promise<ServiceResult<DependencyGraphResult>>;
+  computeDependencyGraph(
+    input: DependencyGraphInput,
+  ): Promise<ServiceResult<DependencyGraphResult>>;
 
   /** Detect circular dependency chains. */
   detectCircularDeps(input: CircularDepsInput): Promise<ServiceResult<CircularDepsResult>>;

@@ -21,7 +21,7 @@ export { InMemoryStorage } from "./adapters.js";
 // Logger
 // ---------------------------------------------------------------------------
 
-export type { Logger, LogContext } from "./logger.js";
+export type { LogContext, Logger } from "./logger.js";
 export { ConsoleLogger, NoOpLogger } from "./logger.js";
 
 // ---------------------------------------------------------------------------
@@ -36,8 +36,8 @@ export { SnapshotServiceImpl } from "./snapshot-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  ValidationServiceConfig,
   CommandRunner,
+  ValidationServiceConfig,
 } from "./validation-service.js";
 export { ValidationServiceImpl } from "./validation-service.js";
 
@@ -53,10 +53,10 @@ export { LearningServiceImpl } from "./learning-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
+  GitCommandRunner,
+  GitHubFetcher,
   IntegrationServiceConfig,
   SentryFetcher,
-  GitHubFetcher,
-  GitCommandRunner,
 } from "./integration-service.js";
 export { IntegrationServiceImpl } from "./integration-service.js";
 
@@ -65,8 +65,8 @@ export { IntegrationServiceImpl } from "./integration-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  SecurityServiceConfig,
   FileReader as SecurityFileReader,
+  SecurityServiceConfig,
 } from "./security-service.js";
 export { SecurityServiceImpl } from "./security-service.js";
 
@@ -75,9 +75,9 @@ export { SecurityServiceImpl } from "./security-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  GraphServiceConfig,
-  FileReader as GraphFileReader,
   DirectoryLister,
+  FileReader as GraphFileReader,
+  GraphServiceConfig,
   PathChecker,
 } from "./graph-service.js";
 export { GraphServiceImpl } from "./graph-service.js";

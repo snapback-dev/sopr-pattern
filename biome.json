@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -21,28 +19,28 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
+        "noAssignInExpressions": "off",
         "noDebugger": "error",
         "noConsole": {
           "level": "warn",
           "options": { "allow": ["warn", "error"] }
         },
-        "noShadowRestrictedNames": "error"
+        "noShadowRestrictedNames": "error",
+        "noVar": "error"
       },
       "style": {
         "useConst": "error",
         "noNonNullAssertion": "warn",
         "useImportType": "error",
         "useNodejsImportProtocol": "error",
-        "noVar": "error"
-      },
-      "nursery": {
         "noRestrictedImports": {
           "level": "error",
           "options": {
             "paths": {}
           }
         }
-      }
+      },
+      "nursery": {}
     }
   },
   "formatter": {
@@ -59,8 +57,13 @@
     }
   },
   "files": {
-    "include": ["src/**/*.ts", "tests/**/*.ts"],
-    "ignore": ["node_modules", "dist", "coverage"]
+    "includes": [
+      "**/src/**/*.ts",
+      "**/tests/**/*.ts",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/coverage"
+    ]
   },
   "overrides": [
     {

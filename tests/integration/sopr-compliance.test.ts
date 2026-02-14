@@ -11,16 +11,12 @@
  * @module tests/integration/sopr-compliance
  */
 
-import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  TOOL_MAP,
-  TOOL_COUNT,
-  TOTAL_MODE_COUNT,
-} from "../../src/contracts/tool-map.js";
+import { describe, expect, it } from "vitest";
 import type { ToolContext } from "../../src/contracts/context.js";
+import { TOOL_COUNT, TOOL_MAP, TOTAL_MODE_COUNT } from "../../src/contracts/tool-map.js";
 import { collectTsFiles } from "../helpers/index.js";
 
 // ---------------------------------------------------------------------------
@@ -146,19 +142,10 @@ describe("SOPR Compliance Report", () => {
 
     it("ToolContext contains the required fields", () => {
       const fields = getToolContextFieldNames();
-      const required = [
-        "workspacePath",
-        "sessionId",
-        "capabilities",
-        "timestamp",
-        "requestId",
-      ];
+      const required = ["workspacePath", "sessionId", "capabilities", "timestamp", "requestId"];
 
       for (const field of required) {
-        expect(
-          fields,
-          `ToolContext is missing required field "${field}"`,
-        ).toContain(field);
+        expect(fields, `ToolContext is missing required field "${field}"`).toContain(field);
       }
     });
   });
@@ -227,7 +214,8 @@ describe("SOPR Compliance Report", () => {
       //
       // We must be careful not to flag words like "many", "company", etc.
       // The regex requires `any` to appear in a type-annotation context.
-      const anyPattern = /\b(?::\s*any\b|as\s+any\b|<any>|any\[\]|Record<[^,]+,\s*any>|:\s*any\s*[;,)\]}])/;
+      const anyPattern =
+        /\b(?::\s*any\b|as\s+any\b|<any>|any\[\]|Record<[^,]+,\s*any>|:\s*any\s*[;,)\]}])/;
 
       // Exception: z.unknown() is fine -- only z.any() is forbidden
       const zodAnyPattern = /z\.any\(\)/;
@@ -241,11 +229,7 @@ describe("SOPR Compliance Report", () => {
           const trimmed = line.trimStart();
 
           // Skip comments
-          if (
-            trimmed.startsWith("//") ||
-            trimmed.startsWith("*") ||
-            trimmed.startsWith("/*")
-          ) {
+          if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
             continue;
           }
 
@@ -259,9 +243,7 @@ describe("SOPR Compliance Report", () => {
         }
       }
 
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line}\n    ${v.rawLine}`)
-        .join("\n\n");
+      const report = violations.map((v) => `  ${v.file}:${v.line}\n    ${v.rawLine}`).join("\n\n");
 
       expect(
         violations,
@@ -279,7 +261,7 @@ describe("SOPR Compliance Report", () => {
 
       const content = fs.readFileSync(toolInputsPath, "utf-8");
       expect(
-        content.includes("from \"zod\"") || content.includes("from 'zod'"),
+        content.includes('from "zod"') || content.includes("from 'zod'"),
         "tool-inputs.ts should import from zod for runtime validation",
       ).toBe(true);
     });
@@ -300,9 +282,7 @@ describe("SOPR Compliance Report", () => {
           const existing = handlerNames.get(modeDef.handler);
 
           if (existing) {
-            const existingDup = duplicates.find(
-              (d) => d.handler === modeDef.handler,
-            );
+            const existingDup = duplicates.find((d) => d.handler === modeDef.handler);
             if (existingDup) {
               existingDup.locations.push(location);
             } else {
@@ -318,16 +298,10 @@ describe("SOPR Compliance Report", () => {
       }
 
       const report = duplicates
-        .map(
-          (d) =>
-            `  Handler "${d.handler}" used by: ${d.locations.join(", ")}`,
-        )
+        .map((d) => `  Handler "${d.handler}" used by: ${d.locations.join(", ")}`)
         .join("\n");
 
-      expect(
-        duplicates,
-        `Duplicate handler names found:\n${report}`,
-      ).toHaveLength(0);
+      expect(duplicates, `Duplicate handler names found:\n${report}`).toHaveLength(0);
     });
   });
 
@@ -345,10 +319,9 @@ describe("SOPR Compliance Report", () => {
       });
 
       it(`"${toolName}" uses lowercase naming`, () => {
-        expect(
-          toolName,
-          `Tool name "${toolName}" should be lowercase`,
-        ).toBe(toolName.toLowerCase());
+        expect(toolName, `Tool name "${toolName}" should be lowercase`).toBe(
+          toolName.toLowerCase(),
+        );
       });
     }
   });

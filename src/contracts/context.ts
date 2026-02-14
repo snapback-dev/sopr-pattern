@@ -3,13 +3,57 @@
  * every SOPR layer.
  *
  * Design constraints:
- *   - Maximum 5 core fields (keeps per-request token cost low).
+ *   - Core fields kept minimal (keeps per-request token cost low).
  *   - Frozen at construction time -- no layer may mutate it.
  *   - Created once by the Protocol Server (Layer 1), consumed read-only
  *     by Tools (Layer 3) and Services (Layer 4).
  *
  * @module contracts/context
  */
+
+// ---------------------------------------------------------------------------
+// Logger Interface (for context-scoped logging)
+// ---------------------------------------------------------------------------
+
+/** Structured log context fields. */
+export type LogContext = Readonly<Record<string, unknown>>;
+
+/** MCP-compatible log levels. */
+export type LogLevel =
+  | "debug"
+  | "info"
+  | "notice"
+  | "warning"
+  | "error"
+  | "critical"
+  | "alert"
+  | "emergency";
+
+/**
+ * Context-scoped logger that tools use to report diagnostic information.
+ *
+ * When running under MCP, this sends logs to the client via the protocol.
+ * In standalone mode, it falls back to console logging.
+ */
+export interface ContextLogger {
+  debug(message: string, context?: LogContext): void;
+  info(message: string, context?: LogContext): void;
+  warn(message: string, context?: LogContext): void;
+  error(message: string, context?: LogContext): void;
+}
+
+// ---------------------------------------------------------------------------
+// Progress Reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * Progress reporter for long-running operations.
+ *
+ * Tools call this to report incremental progress to the client.
+ * The MCP protocol supports progress notifications that clients
+ * can display as progress bars or status updates.
+ */
+export type ProgressReporter = (message: string, progressPercent: number, total?: number) => void;
 
 // ---------------------------------------------------------------------------
 // Core Context Type
@@ -43,6 +87,31 @@ export interface ToolContext {
    * Used for correlation in logs, traces, and error reports.
    */
   readonly requestId: string;
+
+  /**
+   * Cancellation signal for this request.
+   *
+   * Tools and services SHOULD check `signal.aborted` before starting
+   * expensive operations and SHOULD abort early when the signal fires.
+   * This enables responsive cancellation of long-running operations.
+   */
+  readonly signal: AbortSignal;
+
+  /**
+   * Context-scoped logger for diagnostic output.
+   *
+   * Tools use this to log warnings, errors, and debug information
+   * that will be visible to the client or recorded for debugging.
+   */
+  readonly logger: ContextLogger;
+
+  /**
+   * Progress reporter for long-running operations.
+   *
+   * Tools call this to report incremental progress. The function
+   * is a no-op if the client doesn't support progress notifications.
+   */
+  readonly progress: ProgressReporter;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +131,56 @@ export interface CreateContextInput {
 
   /** Unique request identifier. */
   requestId: string;
+
+  /** Cancellation signal for this request. */
+  signal: AbortSignal;
+
+  /** Logger for diagnostic output. */
+  logger: ContextLogger;
+
+  /** Progress reporter callback. */
+  progress: ProgressReporter;
 }
+
+// ---------------------------------------------------------------------------
+// Default Implementations
+// ---------------------------------------------------------------------------
+
+/**
+ * Console-based logger implementation for standalone use.
+ *
+ * Used when MCP logging is not available (e.g., in tests or standalone mode).
+ */
+export function createConsoleLogger(prefix = ""): ContextLogger {
+  const tag = prefix ? `[${prefix}] ` : "";
+  return {
+    debug: (_message, _context) => {},
+    info: (_message, _context) => {},
+    warn: (message, context) => {
+      console.warn(`${tag}WARN: ${message}`, context ?? "");
+    },
+    error: (message, context) => {
+      console.error(`${tag}ERROR: ${message}`, context ?? "");
+    },
+  };
+}
+
+/**
+ * No-op progress reporter for when progress reporting is not supported.
+ */
+export const noOpProgress: ProgressReporter = () => {
+  /* intentionally empty */
+};
+
+/**
+ * No-op logger for testing or silent operation.
+ */
+export const noOpLogger: ContextLogger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+};
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -80,11 +198,15 @@ export interface CreateContextInput {
  *
  * @example
  * ```ts
+ * const controller = new AbortController();
  * const ctx = createToolContext({
  *   workspacePath: "/projects/my-app",
  *   sessionId: "sess_abc123",
  *   capabilities: ["git", "sentry"],
  *   requestId: "req_xyz789",
+ *   signal: controller.signal,
+ *   logger: createConsoleLogger("my-tool"),
+ *   progress: noOpProgress,
  * });
  *
  * ctx.workspacePath = "/other"; // TypeError: Cannot assign to read only property
@@ -97,6 +219,9 @@ export function createToolContext(input: CreateContextInput): ToolContext {
     capabilities: Object.freeze([...input.capabilities]),
     timestamp: Date.now(),
     requestId: input.requestId,
+    signal: input.signal,
+    logger: input.logger,
+    progress: input.progress,
   };
 
   return Object.freeze(ctx);

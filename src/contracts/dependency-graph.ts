@@ -115,8 +115,7 @@ export const SERVICE_DEPENDENCY_GRAPH: readonly ServiceDependency[] = [
     rationale: {
       GraphService:
         "Full validation delegates to GraphService for circular dependency and orphan detection.",
-      SecurityService:
-        "Full validation delegates to SecurityService for vulnerability scanning.",
+      SecurityService: "Full validation delegates to SecurityService for vulnerability scanning.",
     },
   },
 ] as const;
@@ -177,9 +176,7 @@ export const SERVICE_ADJACENCY: Readonly<Record<ServiceName, readonly ServiceNam
  * This function is designed to be called in tests and at startup
  * to enforce the DAG invariant.
  */
-export function hasCycle(
-  adjacency: Readonly<Record<string, readonly string[]>>,
-): boolean {
+export function hasCycle(adjacency: Readonly<Record<string, readonly string[]>>): boolean {
   const white = new Set(Object.keys(adjacency));
   const gray = new Set<string>();
   const black = new Set<string>();
@@ -247,7 +244,7 @@ export function topologicalSort(
     for (const dep of adjacency[node] ?? []) {
       // dep -> node (dep must come before node)
       if (!reverseAdj.has(dep)) reverseAdj.set(dep, []);
-      reverseAdj.get(dep)!.push(node);
+      reverseAdj.get(dep)?.push(node);
       reverseDegree.set(node, (reverseDegree.get(node) ?? 0) + 1);
     }
   }

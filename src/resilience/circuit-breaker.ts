@@ -109,9 +109,7 @@ function resolveState(breaker: CircuitBreaker): CircuitState {
   return "closed";
 }
 
-function mergeConfig(
-  partial?: Partial<CircuitBreakerConfig>,
-): CircuitBreakerConfig {
+function mergeConfig(partial?: Partial<CircuitBreakerConfig>): CircuitBreakerConfig {
   return { ...DEFAULTS, ...partial };
 }
 
@@ -154,16 +152,13 @@ export function createBreakerRegistry(): BreakerRegistry {
 
     const resolved = mergeConfig(config);
 
-    const breaker = new CircuitBreaker<[TInput], TOutput>(
-      (input: TInput) => fn(input),
-      {
-        timeout: resolved.timeoutMs,
-        errorThresholdPercentage: resolved.errorThresholdPercentage,
-        resetTimeout: resolved.resetTimeoutMs,
-        volumeThreshold: resolved.volumeThreshold,
-        name,
-      },
-    );
+    const breaker = new CircuitBreaker<[TInput], TOutput>((input: TInput) => fn(input), {
+      timeout: resolved.timeoutMs,
+      errorThresholdPercentage: resolved.errorThresholdPercentage,
+      resetTimeout: resolved.resetTimeoutMs,
+      volumeThreshold: resolved.volumeThreshold,
+      name,
+    });
 
     breakers.set(name, breaker as CircuitBreaker);
     return breaker;

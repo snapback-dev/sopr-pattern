@@ -11,22 +11,22 @@
  */
 
 import type {
-  IGraphService,
-  GraphNode,
-  GraphEdge,
   CircularDependency,
-  DependencyGraphInput,
-  DependencyGraphResult,
   CircularDepsInput,
   CircularDepsResult,
-  OrphanDetectionInput,
-  OrphanDetectionResult,
   DeadExport,
+  DependencyGraphInput,
+  DependencyGraphResult,
+  FileCluster,
   FileGraphInput,
   FileGraphResult,
-  FileCluster,
+  GraphEdge,
   GraphHealthInput,
   GraphHealthResult,
+  GraphNode,
+  IGraphService,
+  OrphanDetectionInput,
+  OrphanDetectionResult,
   ServiceResult,
   Severity,
 } from "../contracts/services.js";
@@ -102,8 +102,7 @@ function parseImports(content: string): ParsedImport[] {
   }
 
   // Re-exports: export ... from "..."
-  const reExportRegex =
-    /export\s+(?:(?:type\s+)?\{[^}]*\}|\*)\s+from\s+["']([^"']+)["']/g;
+  const reExportRegex = /export\s+(?:(?:type\s+)?\{[^}]*\}|\*)\s+from\s+["']([^"']+)["']/g;
   while ((match = reExportRegex.exec(content)) !== null) {
     if (match[1]) {
       imports.push({ source: match[1], type: "re-export" });
@@ -142,7 +141,13 @@ function parseExports(content: string): string[] {
   const destructuredRegex = /export\s+\{([^}]+)\}/g;
   while ((match = destructuredRegex.exec(content)) !== null) {
     if (match[1]) {
-      const names = match[1].split(",").map((n) => n.trim().split(/\s+as\s+/)[0]?.trim() ?? "");
+      const names = match[1].split(",").map(
+        (n) =>
+          n
+            .trim()
+            .split(/\s+as\s+/)[0]
+            ?.trim() ?? "",
+      );
       for (const name of names) {
         if (name.length > 0) {
           exports.push(name);
@@ -165,7 +170,7 @@ export class GraphServiceImpl implements IGraphService {
     config: Partial<GraphServiceConfig>,
     private readonly readFile: FileReader,
     private readonly listDirectory: DirectoryLister,
-    private readonly checkPath: PathChecker,
+    _checkPath: PathChecker,
     private readonly logger: Logger,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -185,9 +190,7 @@ export class GraphServiceImpl implements IGraphService {
 
       // Use entry points if provided, otherwise scan all files
       const entryPoints =
-        input.entryPoints && input.entryPoints.length > 0
-          ? [...input.entryPoints]
-          : allFiles;
+        input.entryPoints && input.entryPoints.length > 0 ? [...input.entryPoints] : allFiles;
 
       // Build the graph
       for (const filePath of entryPoints) {
@@ -230,9 +233,7 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
-  async detectCircularDeps(
-    input: CircularDepsInput,
-  ): Promise<ServiceResult<CircularDepsResult>> {
+  async detectCircularDeps(input: CircularDepsInput): Promise<ServiceResult<CircularDepsResult>> {
     try {
       // Build the dependency graph first
       const graphResult = await this.computeDependencyGraph({
@@ -269,8 +270,7 @@ export class GraphServiceImpl implements IGraphService {
         for (const file of chain) {
           affectedFiles.add(file);
         }
-        const severity: Severity =
-          chain.length > 3 ? "error" : "warning";
+        const severity: Severity = chain.length > 3 ? "error" : "warning";
         return { chain, severity };
       });
 
@@ -295,9 +295,7 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
-  async detectOrphans(
-    input: OrphanDetectionInput,
-  ): Promise<ServiceResult<OrphanDetectionResult>> {
+  async detectOrphans(input: OrphanDetectionInput): Promise<ServiceResult<OrphanDetectionResult>> {
     try {
       const allFiles = await this.collectFiles(input.workspacePath);
       const ignorePatterns = input.ignorePatterns ?? [];
@@ -353,9 +351,7 @@ export class GraphServiceImpl implements IGraphService {
       for (const node of graphResult.data.nodes) {
         for (const exportName of node.exports) {
           // Check if this export is referenced in any importing file
-          const isReferenced = graphResult.data.edges.some(
-            (edge) => edge.to === node.id,
-          );
+          const isReferenced = graphResult.data.edges.some((edge) => edge.to === node.id);
           if (!isReferenced && !node.path.includes("index.")) {
             deadExports.push({
               file: node.path,
@@ -386,9 +382,7 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
-  async computeFileGraph(
-    input: FileGraphInput,
-  ): Promise<ServiceResult<FileGraphResult>> {
+  async computeFileGraph(input: FileGraphInput): Promise<ServiceResult<FileGraphResult>> {
     try {
       const depth = input.depth ?? this.config.maxDepth;
       const allFiles = await this.collectFiles(input.workspacePath);
@@ -432,27 +426,21 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
-  async computeHealth(
-    input: GraphHealthInput,
-  ): Promise<ServiceResult<GraphHealthResult>> {
+  async computeHealth(input: GraphHealthInput): Promise<ServiceResult<GraphHealthResult>> {
     try {
       // Run circular dependency check
       const circularResult = await this.detectCircularDeps({
         workspacePath: input.workspacePath,
       });
 
-      const circularCount = circularResult.ok
-        ? circularResult.data.cycles.length
-        : 0;
+      const circularCount = circularResult.ok ? circularResult.data.cycles.length : 0;
 
       // Run orphan detection
       const orphanResult = await this.detectOrphans({
         workspacePath: input.workspacePath,
       });
 
-      const orphanCount = orphanResult.ok
-        ? orphanResult.data.orphanedFiles.length
-        : 0;
+      const orphanCount = orphanResult.ok ? orphanResult.data.orphanedFiles.length : 0;
 
       // Compute fan-out metrics from dependency graph
       const graphResult = await this.computeDependencyGraph({
@@ -466,10 +454,7 @@ export class GraphServiceImpl implements IGraphService {
       if (graphResult.ok) {
         const fanOutMap = new Map<string, number>();
         for (const edge of graphResult.data.edges) {
-          fanOutMap.set(
-            edge.from,
-            (fanOutMap.get(edge.from) ?? 0) + 1,
-          );
+          fanOutMap.set(edge.from, (fanOutMap.get(edge.from) ?? 0) + 1);
         }
 
         for (const count of fanOutMap.values()) {
@@ -479,10 +464,7 @@ export class GraphServiceImpl implements IGraphService {
         }
       }
 
-      const avgFanOut =
-        nodeCount > 0
-          ? Math.round((totalFanOut / nodeCount) * 100) / 100
-          : 0;
+      const avgFanOut = nodeCount > 0 ? Math.round((totalFanOut / nodeCount) * 100) / 100 : 0;
 
       // Compute modularity score (0-1)
       // Higher modularity = well-separated clusters
@@ -497,10 +479,7 @@ export class GraphServiceImpl implements IGraphService {
           // Simple modularity estimate
           modularity =
             clusterCount > 0 && totalEdges > 0
-              ? Math.min(
-                  1,
-                  clusterCount / Math.sqrt(totalEdges),
-                )
+              ? Math.min(1, clusterCount / Math.sqrt(totalEdges))
               : 0;
         }
       }
@@ -548,10 +527,7 @@ export class GraphServiceImpl implements IGraphService {
 
         for (const entry of entries) {
           // Skip excluded directories
-          if (
-            entry.isDirectory &&
-            this.config.excludeDirs.includes(entry.name)
-          ) {
+          if (entry.isDirectory && this.config.excludeDirs.includes(entry.name)) {
             continue;
           }
 
@@ -615,11 +591,7 @@ export class GraphServiceImpl implements IGraphService {
         continue;
       }
 
-      const resolvedPath = this.resolveImportPath(
-        filePath,
-        imp.source,
-        allFiles,
-      );
+      const resolvedPath = this.resolveImportPath(filePath, imp.source, allFiles);
 
       if (resolvedPath) {
         edges.push({
@@ -670,12 +642,8 @@ export class GraphServiceImpl implements IGraphService {
       withoutExt,
       ...this.config.extensions.map((ext) => withoutExt + ext),
       ...this.config.extensions.map((ext) => resolved + ext),
-      ...this.config.extensions.map(
-        (ext) => withoutExt + "/index" + ext,
-      ),
-      ...this.config.extensions.map(
-        (ext) => resolved + "/index" + ext,
-      ),
+      ...this.config.extensions.map((ext) => `${withoutExt}/index${ext}`),
+      ...this.config.extensions.map((ext) => `${resolved}/index${ext}`),
     ];
 
     for (const candidate of candidates) {
@@ -689,9 +657,7 @@ export class GraphServiceImpl implements IGraphService {
 
   private resolvePath(base: string, relative: string): string {
     const parts = base.split("/").filter((p) => p.length > 0);
-    const relativeParts = relative
-      .split("/")
-      .filter((p) => p.length > 0);
+    const relativeParts = relative.split("/").filter((p) => p.length > 0);
 
     for (const part of relativeParts) {
       if (part === "..") {
@@ -701,12 +667,10 @@ export class GraphServiceImpl implements IGraphService {
       }
     }
 
-    return "/" + parts.join("/");
+    return `/${parts.join("/")}`;
   }
 
-  private classifyNode(
-    filePath: string,
-  ): "file" | "module" | "package" {
+  private classifyNode(filePath: string): "file" | "module" | "package" {
     const fileName = filePath.split("/").pop() ?? "";
 
     if (fileName.startsWith("index.")) return "module";
@@ -720,9 +684,7 @@ export class GraphServiceImpl implements IGraphService {
     return fileName.substring(lastDot);
   }
 
-  private findCycles(
-    adjacency: Map<string, string[]>,
-  ): string[][] {
+  private findCycles(adjacency: Map<string, string[]>): string[][] {
     const cycles: string[][] = [];
     const visited = new Set<string>();
     const inStack = new Set<string>();
@@ -753,14 +715,7 @@ export class GraphServiceImpl implements IGraphService {
 
     for (const neighbor of neighbors) {
       if (!visited.has(neighbor)) {
-        this.dfsForCycles(
-          neighbor,
-          adjacency,
-          visited,
-          inStack,
-          stack,
-          cycles,
-        );
+        this.dfsForCycles(neighbor, adjacency, visited, inStack, stack, cycles);
       } else if (inStack.has(neighbor)) {
         // Found a cycle: extract it from the stack
         const cycleStart = stack.indexOf(neighbor);
@@ -776,10 +731,7 @@ export class GraphServiceImpl implements IGraphService {
     inStack.delete(node);
   }
 
-  private calculateMaxDepth(
-    edges: readonly GraphEdge[],
-    nodes: readonly GraphNode[],
-  ): number {
+  private calculateMaxDepth(edges: readonly GraphEdge[], nodes: readonly GraphNode[]): number {
     if (nodes.length === 0) return 0;
 
     // Build adjacency and compute longest path using BFS-like approach
@@ -851,10 +803,7 @@ export class GraphServiceImpl implements IGraphService {
     for (const [dir, files] of dirGroups) {
       if (files.length >= 2) {
         // Compute cohesion: ratio of within-cluster edges to possible edges
-        const cohesion =
-          files.length > 1
-            ? Math.min(1, files.length / 10)
-            : 1;
+        const cohesion = files.length > 1 ? Math.min(1, files.length / 10) : 1;
 
         clusters.push({
           name: dir.split("/").pop() ?? dir,

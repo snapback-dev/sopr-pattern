@@ -42,6 +42,7 @@ export type ModeHandler<TInput = unknown, TOutput = unknown> = (
  * - A short `description` (under 60 tokens) for efficient discovery.
  * - A Zod `inputSchema` that validates the raw `arguments` object.
  * - A `modes` map from mode string to handler function.
+ * - An optional `outputSchema` for validating handler outputs.
  *
  * @typeParam TInput  - The Zod-inferred input type.
  * @typeParam TOutput - The output type produced by mode handlers.
@@ -61,6 +62,13 @@ export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
    * The registry calls `.safeParse()` on this before dispatching to a handler.
    */
   readonly inputSchema: ZodType<TInput>;
+
+  /**
+   * Optional Zod schema that validates handler outputs.
+   * When provided, the registry validates outputs before returning to the client.
+   * This catches bugs early and ensures contract compliance.
+   */
+  readonly outputSchema?: ZodType<TOutput>;
 
   /**
    * Map of mode name to handler function.
@@ -85,6 +93,18 @@ export interface ToolRegistryConfig {
    * to stderr. Defaults to false.
    */
   readonly verbose: boolean;
+
+  /**
+   * Default timeout in milliseconds for tool handler execution.
+   * Defaults to 30000 (30 seconds). Set to 0 to disable.
+   */
+  readonly defaultTimeoutMs: number;
+
+  /**
+   * If true, validate handler outputs against outputSchema when present.
+   * Defaults to true in development, false in production for performance.
+   */
+  readonly validateOutputs: boolean;
 }
 
 /**
@@ -92,4 +112,6 @@ export interface ToolRegistryConfig {
  */
 export const DEFAULT_REGISTRY_CONFIG: ToolRegistryConfig = Object.freeze({
   verbose: false,
+  defaultTimeoutMs: 30_000,
+  validateOutputs: true, // Enable by default; disable in production via config override
 });

@@ -51,13 +51,9 @@ export class ConsoleLogger implements Logger {
     this.prefix = prefix ? `[${prefix}] ` : "";
   }
 
-  debug(message: string, meta?: Record<string, unknown>): void {
-    console.debug(`${this.prefix}${message}`, meta ?? "");
-  }
+  debug(_message: string, _meta?: Record<string, unknown>): void {}
 
-  info(message: string, meta?: Record<string, unknown>): void {
-    console.info(`${this.prefix}${message}`, meta ?? "");
-  }
+  info(_message: string, _meta?: Record<string, unknown>): void {}
 
   warn(message: string, meta?: Record<string, unknown>): void {
     console.warn(`${this.prefix}${message}`, meta ?? "");
@@ -122,8 +118,7 @@ export function withGracefulDegradation<TInput, TOutput>(
       return await fn(input);
     } catch (error: unknown) {
       if (logger) {
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         logger.error("Graceful degradation: returning fallback", {
           error: message,
           fallback: fallbackValue === null ? "null" : typeof fallbackValue,

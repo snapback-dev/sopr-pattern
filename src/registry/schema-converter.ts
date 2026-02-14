@@ -55,16 +55,16 @@ export interface JsonSchemaObject {
  * This is a stable API across Zod v3.x.
  */
 function getTypeName(schema: ZodType): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Zod internal _def access requires any
   return (schema as Record<string, any>)._def?.typeName ?? "ZodUnknown";
 }
 
 /**
  * Access the internal `_def` object of a Zod schema.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal _def access requires any
 function getDef(schema: ZodType): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Zod internal _def access requires any
   return (schema as Record<string, any>)._def;
 }
 
@@ -91,7 +91,11 @@ function convertNode(schema: ZodType): JsonSchemaProperty {
     case "ZodNumber": {
       const result: JsonSchemaProperty = { type: "number" };
       if (def.checks) {
-        for (const check of def.checks as Array<{ kind: string; value?: number; inclusive?: boolean }>) {
+        for (const check of def.checks as Array<{
+          kind: string;
+          value?: number;
+          inclusive?: boolean;
+        }>) {
           if (check.kind === "int") {
             result.type = "integer";
           }
@@ -189,9 +193,7 @@ export function zodSchemaToJsonSchema(schema: ZodType): JsonSchemaObject {
   const typeName = getTypeName(schema);
 
   if (typeName !== "ZodObject") {
-    throw new Error(
-      `Expected a ZodObject schema at the top level, got ${typeName}`,
-    );
+    throw new Error(`Expected a ZodObject schema at the top level, got ${typeName}`);
   }
 
   const converted = convertNode(schema);

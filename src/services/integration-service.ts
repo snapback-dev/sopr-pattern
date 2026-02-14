@@ -15,23 +15,23 @@ import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 
 import type {
-  IIntegrationService,
-  GitContext,
+  EnrichContextInput,
+  EnrichmentContext,
   GitCommit,
+  GitContext,
   GitContextInput,
-  SentryContext,
-  SentryContextInput,
   GitHubContext,
   GitHubContextInput,
-  EnrichmentContext,
-  EnrichContextInput,
-  IntegrationHealthInput,
-  IntegrationHealth,
+  IIntegrationService,
+  IntegrationConfigEntry,
   IntegrationConfigInput,
   IntegrationConfigResult,
-  IntegrationConfigEntry,
-  ServiceResult,
+  IntegrationHealth,
+  IntegrationHealthInput,
   RiskScore,
+  SentryContext,
+  SentryContextInput,
+  ServiceResult,
 } from "../contracts/services.js";
 import type { Logger } from "./logger.js";
 
@@ -58,22 +58,13 @@ const DEFAULT_CONFIG: IntegrationServiceConfig = {
 // ---------------------------------------------------------------------------
 
 /** Function to fetch Sentry context. Injected so callers can wrap with circuit breaker. */
-export type SentryFetcher = (
-  workspacePath: string,
-  hoursBack: number,
-) => Promise<SentryContext>;
+export type SentryFetcher = (workspacePath: string, hoursBack: number) => Promise<SentryContext>;
 
 /** Function to fetch GitHub context. Injected so callers can wrap with circuit breaker. */
-export type GitHubFetcher = (
-  workspacePath: string,
-  prLimit: number,
-) => Promise<GitHubContext>;
+export type GitHubFetcher = (workspacePath: string, prLimit: number) => Promise<GitHubContext>;
 
 /** Function to run git commands. Injected for testability. */
-export type GitCommandRunner = (
-  args: readonly string[],
-  cwd: string,
-) => Promise<string>;
+export type GitCommandRunner = (args: readonly string[], cwd: string) => Promise<string>;
 
 // ---------------------------------------------------------------------------
 // Default Git Command Runner
@@ -108,45 +99,31 @@ export class IntegrationServiceImpl implements IIntegrationService {
     githubFetcher?: GitHubFetcher,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.gitRunner =
-      gitRunner ?? defaultGitRunner(this.config.gitTimeoutMs);
+    this.gitRunner = gitRunner ?? defaultGitRunner(this.config.gitTimeoutMs);
     this.sentryFetcher = sentryFetcher ?? null;
     this.githubFetcher = githubFetcher ?? null;
   }
 
-  async getGitContext(
-    input: GitContextInput,
-  ): Promise<ServiceResult<GitContext>> {
+  async getGitContext(input: GitContextInput): Promise<ServiceResult<GitContext>> {
     try {
       const commitLimit = input.commitLimit ?? this.config.commitLimit;
 
       // Get current branch
-      const branch = await this.runGit(
-        ["rev-parse", "--abbrev-ref", "HEAD"],
-        input.workspacePath,
-      );
+      const branch = await this.runGit(["rev-parse", "--abbrev-ref", "HEAD"], input.workspacePath);
 
       // Get working tree status
-      const statusOutput = await this.runGit(
-        ["status", "--porcelain"],
-        input.workspacePath,
-      );
+      const statusOutput = await this.runGit(["status", "--porcelain"], input.workspacePath);
 
       const uncommittedFiles = statusOutput
         .split("\n")
         .filter((line) => line.trim().length > 0)
         .map((line) => line.slice(3).trim());
 
-      const status: "clean" | "dirty" =
-        uncommittedFiles.length === 0 ? "clean" : "dirty";
+      const status: "clean" | "dirty" = uncommittedFiles.length === 0 ? "clean" : "dirty";
 
       // Get recent commits
       const logOutput = await this.runGit(
-        [
-          "log",
-          `--max-count=${commitLimit}`,
-          "--format=%H|%s|%an|%at",
-        ],
+        ["log", `--max-count=${commitLimit}`, "--format=%H|%s|%an|%at"],
         input.workspacePath,
       );
 
@@ -186,9 +163,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     }
   }
 
-  async getSentryContext(
-    input: SentryContextInput,
-  ): Promise<ServiceResult<SentryContext>> {
+  async getSentryContext(input: SentryContextInput): Promise<ServiceResult<SentryContext>> {
     if (!this.sentryFetcher) {
       return {
         ok: false,
@@ -199,10 +174,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
 
     try {
       const hoursBack = input.hoursBack ?? 24;
-      const context = await this.sentryFetcher(
-        input.workspacePath,
-        hoursBack,
-      );
+      const context = await this.sentryFetcher(input.workspacePath, hoursBack);
 
       this.logger.info("Sentry context retrieved", {
         errors: context.recentErrors.length,
@@ -217,9 +189,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     }
   }
 
-  async getGitHubContext(
-    input: GitHubContextInput,
-  ): Promise<ServiceResult<GitHubContext>> {
+  async getGitHubContext(input: GitHubContextInput): Promise<ServiceResult<GitHubContext>> {
     if (!this.githubFetcher) {
       return {
         ok: false,
@@ -230,10 +200,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
 
     try {
       const prLimit = input.prLimit ?? 10;
-      const context = await this.githubFetcher(
-        input.workspacePath,
-        prLimit,
-      );
+      const context = await this.githubFetcher(input.workspacePath, prLimit);
 
       this.logger.info("GitHub context retrieved", {
         openPRs: context.openPRs.length,
@@ -249,9 +216,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     }
   }
 
-  async enrichContext(
-    input: EnrichContextInput,
-  ): Promise<ServiceResult<EnrichmentContext>> {
+  async enrichContext(input: EnrichContextInput): Promise<ServiceResult<EnrichmentContext>> {
     try {
       const activeIntegrations: string[] = [];
       let git: GitContext | null = null;
@@ -317,9 +282,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     }
   }
 
-  async checkHealth(
-    input: IntegrationHealthInput,
-  ): Promise<readonly IntegrationHealth[]> {
+  async checkHealth(input: IntegrationHealthInput): Promise<readonly IntegrationHealth[]> {
     const healthResults: IntegrationHealth[] = [];
     const now = Date.now();
 
@@ -327,10 +290,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     if (input.capabilities.includes("git")) {
       const start = Date.now();
       try {
-        await this.runGit(
-          ["rev-parse", "--git-dir"],
-          input.workspacePath,
-        );
+        await this.runGit(["rev-parse", "--git-dir"], input.workspacePath);
         healthResults.push({
           name: "git",
           status: "healthy",
@@ -394,23 +354,17 @@ export class IntegrationServiceImpl implements IIntegrationService {
       integrations.push({
         name: "sentry",
         configured: this.sentryFetcher !== null,
-        issues: this.sentryFetcher
-          ? []
-          : ["Sentry fetcher not provided — integration disabled"],
+        issues: this.sentryFetcher ? [] : ["Sentry fetcher not provided — integration disabled"],
       });
 
       // GitHub configuration
       integrations.push({
         name: "github",
         configured: this.githubFetcher !== null,
-        issues: this.githubFetcher
-          ? []
-          : ["GitHub fetcher not provided — integration disabled"],
+        issues: this.githubFetcher ? [] : ["GitHub fetcher not provided — integration disabled"],
       });
 
-      const valid = integrations.every(
-        (i) => i.configured || i.issues.length === 0,
-      );
+      const valid = integrations.every((i) => i.configured || i.issues.length === 0);
 
       return {
         ok: true,
@@ -429,10 +383,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
   // Private helpers
   // -------------------------------------------------------------------------
 
-  private async runGit(
-    args: readonly string[],
-    cwd: string,
-  ): Promise<string> {
+  private async runGit(args: readonly string[], cwd: string): Promise<string> {
     return this.gitRunner(args, cwd);
   }
 
@@ -462,14 +413,7 @@ export class IntegrationServiceImpl implements IIntegrationService {
     }
 
     // Core files add risk
-    const corePatterns = [
-      /auth/i,
-      /security/i,
-      /payment/i,
-      /config/i,
-      /database/i,
-      /migration/i,
-    ];
+    const corePatterns = [/auth/i, /security/i, /payment/i, /config/i, /database/i, /migration/i];
     for (const file of files) {
       if (corePatterns.some((p) => p.test(file))) {
         risk += 0.05;

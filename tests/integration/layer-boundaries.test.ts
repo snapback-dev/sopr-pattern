@@ -20,14 +20,14 @@
  * @module tests/integration/layer-boundaries
  */
 
-import { describe, it, expect } from "vitest";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import {
   collectTsFiles,
+  getLayerForFile,
   parseImports,
   resolveLayerFromImport,
-  getLayerForFile,
 } from "../helpers/index.js";
 
 // ---------------------------------------------------------------------------
@@ -118,6 +118,7 @@ describe("SOPR Layer Boundaries", () => {
   });
 
   it("registry layer does not import services or tools", () => {
+    // Registry may import from router and telemetry (open core cross-cutting)
     const forbidden = ["services", "tools"] as const;
     const violations = detectForbiddenImports(REGISTRY_DIR, forbidden);
 
@@ -143,16 +144,19 @@ describe("SOPR Layer Boundaries", () => {
     const files = collectTsFiles(SERVICES_DIR);
 
     for (const filePath of files) {
+      // Skip barrel files — they exist to re-export all services
+      const basename = path.basename(filePath, ".ts");
+      if (basename === "index") continue;
+
       const imports = parseImports(filePath);
       for (const imp of imports) {
+        // Skip comment lines that look like imports (e.g. "// import ... from ...")
+        if (imp.raw.trimStart().startsWith("//")) continue;
+
         // Only check relative imports within the services layer
         if (!imp.specifier.startsWith(".")) continue;
 
-        const targetLayer = resolveLayerFromImport(
-          imp.specifier,
-          filePath,
-          SRC_ROOT,
-        );
+        const targetLayer = resolveLayerFromImport(imp.specifier, filePath, SRC_ROOT);
 
         // Skip imports that leave the services layer (handled by other tests)
         if (targetLayer !== "services") continue;
@@ -166,14 +170,17 @@ describe("SOPR Layer Boundaries", () => {
         //  - Importing from an interfaces/types file (e.g. "./interfaces.ts")
         //  - Importing from an index barrel that re-exports interfaces
         //  - Importing from a types directory
+        //  - Importing infrastructure files (logger, adapters) shared across services
         //
         // Forbidden:
         //  - Importing a concrete service class file from another service subdirectory
         //  - e.g. SnapshotService importing ../../ValidationService/validator.ts
-        const isInterfaceImport =
+        const isInfrastructureImport =
           relativeToServices.includes("interface") ||
           relativeToServices.includes("types") ||
           relativeToServices.includes("index") ||
+          relativeToServices.includes("logger") ||
+          relativeToServices.includes("adapters") ||
           relativeToServices.endsWith(".d.ts");
 
         // Check if the import crosses service subdirectory boundaries
@@ -185,8 +192,8 @@ describe("SOPR Layer Boundaries", () => {
         // If both are in the same service subdirectory, this is fine
         if (sourceTopDir === targetTopDir) continue;
 
-        // Cross-service import that isn't an interface -- violation
-        if (!isInterfaceImport) {
+        // Cross-service import that isn't infrastructure -- violation
+        if (!isInfrastructureImport) {
           violations.push({
             file: path.relative(SRC_ROOT, filePath),
             line: imp.line,
@@ -225,13 +232,7 @@ describe("SOPR Layer Boundaries", () => {
 
   it("contracts layer has no imports from any SOPR layer", () => {
     const contractsDir = path.join(SRC_ROOT, "contracts");
-    const forbidden = [
-      "protocol",
-      "registry",
-      "tools",
-      "services",
-      "resilience",
-    ] as const;
+    const forbidden = ["protocol", "registry", "tools", "services", "resilience"] as const;
     const violations = detectForbiddenImports(contractsDir, forbidden);
 
     expect(
@@ -242,12 +243,7 @@ describe("SOPR Layer Boundaries", () => {
 
   it("resilience layer has no imports from SOPR business layers", () => {
     const resilienceDir = path.join(SRC_ROOT, "resilience");
-    const forbidden = [
-      "protocol",
-      "registry",
-      "tools",
-      "services",
-    ] as const;
+    const forbidden = ["protocol", "registry", "tools", "services"] as const;
     const violations = detectForbiddenImports(resilienceDir, forbidden);
 
     expect(

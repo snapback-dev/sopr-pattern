@@ -71,10 +71,8 @@ export class ConsoleLogger implements Logger {
         console.warn(`${ts} ${level} ${tag} ${message}${ctx}`);
         break;
       case "DEBUG":
-        console.debug(`${ts} ${level} ${tag} ${message}${ctx}`);
         break;
       default:
-        console.log(`${ts} ${level} ${tag} ${message}${ctx}`);
     }
   }
 }

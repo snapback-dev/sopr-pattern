@@ -10,130 +10,120 @@
  */
 
 // Context (Layer 1 creates, Layers 3-4 consume)
-export type { ToolContext, CreateContextInput } from "./context.js";
+export type { CreateContextInput, ToolContext } from "./context.js";
 export { createToolContext } from "./context.js";
-
-// Tool Consolidation Map (Layer 2 consumes for registration)
-export type {
-  ExecutionStrategy,
-  ServiceName,
-  ModeDefinition,
-  ToolMapEntry,
-  ToolName,
-  ModeName,
-  ModeDefinitionFor,
-} from "./tool-map.js";
-export { TOOL_MAP, TOTAL_MODE_COUNT, TOOL_COUNT } from "./tool-map.js";
-
-// Service Interfaces (Layer 3 consumes for orchestration, Layer 4 implements)
-export type {
-  // Shared
-  Severity,
-  Diagnostic,
-  ServiceResult,
-  RiskScore,
-
-  // ISnapshotService
-  ISnapshotService,
-  CreateSnapshotInput,
-  Snapshot,
-  GetSnapshotInput,
-  SnapshotState,
-  FinalizeSnapshotInput,
-  FinalizeSnapshotResult,
-
-  // IValidationService
-  IValidationService,
-  ValidationInput,
-  ValidationResult,
-  PatternValidationInput,
-  PatternValidationResult,
-  BuildValidationInput,
-  BuildValidationResult,
-  CoverageInput,
-  CoverageResult,
-  HealthScoreInput,
-  HealthScore,
-  EvolutionInput,
-  EvolutionResult,
-  EvolutionSnapshot,
-
-  // ILearningService
-  ILearningService,
-  LearningType,
-  Learning,
-  LoadLearningsInput,
-  LoadLearningsResult,
-  SaveLearningInput,
-  SearchLearningsInput,
-  SearchLearningsResult,
-  RecordLearningsInput,
-  RecordLearningsResult,
-
-  // IIntegrationService
-  IIntegrationService,
-  GitContext,
-  GitCommit,
-  GitContextInput,
-  SentryContext,
-  SentryError,
-  SentryContextInput,
-  GitHubContext,
-  GitHubPR,
-  GitHubIssue,
-  GitHubContextInput,
-  EnrichmentContext,
-  EnrichContextInput,
-  IntegrationHealthInput,
-  IntegrationHealth,
-  IntegrationConfigInput,
-  IntegrationConfigResult,
-  IntegrationConfigEntry,
-
-  // ISecurityService
-  ISecurityService,
-  SecuritySeverity,
-  SecurityFinding,
-  SecurityScanInput,
-  SecurityScanResult,
-
-  // IGraphService
-  IGraphService,
-  GraphNode,
-  GraphEdge,
-  CircularDependency,
-  DependencyGraphInput,
-  DependencyGraphResult,
-  CircularDepsInput,
-  CircularDepsResult,
-  OrphanDetectionInput,
-  OrphanDetectionResult,
-  DeadExport,
-  FileGraphInput,
-  FileGraphResult,
-  FileCluster,
-  GraphHealthInput,
-  GraphHealthResult,
-
-  // ICacheService
-  ICacheService,
-  CachedError,
-  CachedPattern,
-  ErrorCacheInput,
-  ErrorCacheResult,
-  PatternCacheInput,
-  PatternCacheResult,
-
-  // Service Container
-  ServiceContainer,
-} from "./services.js";
-
 // Dependency Graph (composition root consumes for wiring order)
 export type { ServiceDependency } from "./dependency-graph.js";
 export {
+  hasCycle,
+  SERVICE_ADJACENCY,
   SERVICE_DEPENDENCY_GRAPH,
   SERVICE_INIT_ORDER,
-  SERVICE_ADJACENCY,
-  hasCycle,
   topologicalSort,
 } from "./dependency-graph.js";
+
+// Service Interfaces (Layer 3 consumes for orchestration, Layer 4 implements)
+export type {
+  BuildValidationInput,
+  BuildValidationResult,
+  CachedError,
+  CachedPattern,
+  CircularDependency,
+  CircularDepsInput,
+  CircularDepsResult,
+  CoverageInput,
+  CoverageResult,
+  CreateSnapshotInput,
+  DeadExport,
+  DependencyGraphInput,
+  DependencyGraphResult,
+  Diagnostic,
+  EnrichContextInput,
+  EnrichmentContext,
+  ErrorCacheInput,
+  ErrorCacheResult,
+  EvolutionInput,
+  EvolutionResult,
+  EvolutionSnapshot,
+  FileCluster,
+  FileGraphInput,
+  FileGraphResult,
+  FinalizeSnapshotInput,
+  FinalizeSnapshotResult,
+  GetSnapshotInput,
+  GitCommit,
+  GitContext,
+  GitContextInput,
+  GitHubContext,
+  GitHubContextInput,
+  GitHubIssue,
+  GitHubPR,
+  GraphEdge,
+  GraphHealthInput,
+  GraphHealthResult,
+  GraphNode,
+  HealthScore,
+  HealthScoreInput,
+  // ICacheService
+  ICacheService,
+  // IGraphService
+  IGraphService,
+  // IIntegrationService
+  IIntegrationService,
+  // ILearningService
+  ILearningService,
+  IntegrationConfigEntry,
+  IntegrationConfigInput,
+  IntegrationConfigResult,
+  IntegrationHealth,
+  IntegrationHealthInput,
+  // ISecurityService
+  ISecurityService,
+  // ISnapshotService
+  ISnapshotService,
+  // IValidationService
+  IValidationService,
+  Learning,
+  LearningType,
+  LoadLearningsInput,
+  LoadLearningsResult,
+  OrphanDetectionInput,
+  OrphanDetectionResult,
+  PatternCacheInput,
+  PatternCacheResult,
+  PatternValidationInput,
+  PatternValidationResult,
+  RecordLearningsInput,
+  RecordLearningsResult,
+  RiskScore,
+  SaveLearningInput,
+  SearchLearningsInput,
+  SearchLearningsResult,
+  SecurityFinding,
+  SecurityScanInput,
+  SecurityScanResult,
+  SecuritySeverity,
+  SentryContext,
+  SentryContextInput,
+  SentryError,
+  // Service Container
+  ServiceContainer,
+  ServiceResult,
+  // Shared
+  Severity,
+  Snapshot,
+  SnapshotState,
+  ValidationInput,
+  ValidationResult,
+} from "./services.js";
+// Tool Consolidation Map (Layer 2 consumes for registration)
+export type {
+  ExecutionStrategy,
+  ModeDefinition,
+  ModeDefinitionFor,
+  ModeName,
+  ServiceName,
+  ToolMapEntry,
+  ToolName,
+} from "./tool-map.js";
+export { TOOL_COUNT, TOOL_MAP, TOTAL_MODE_COUNT } from "./tool-map.js";

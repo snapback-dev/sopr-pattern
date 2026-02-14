@@ -6,6 +6,7 @@
  *   - Runtime validation of tool return values in development/test.
  *   - TypeScript type inference via `z.infer<>`.
  *   - Wire-format encoding/decoding (see wire-format.ts).
+ *   - Validation in the Tool Registry to catch service bugs early.
  *
  * @module contracts/schemas/tool-outputs
  */
@@ -133,6 +134,27 @@ export const CacheOutputSchema = z.object({
 export type CacheOutput = z.infer<typeof CacheOutputSchema>;
 
 // ---------------------------------------------------------------------------
+// Service Result Schema (for wrapping service responses)
+// ---------------------------------------------------------------------------
+
+/**
+ * Schema for ServiceResult<T> - the discriminated union used by all services.
+ * This captures both success and failure cases for validation purposes.
+ */
+export const ServiceResultSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.union([
+    z.object({
+      ok: z.literal(true),
+      data: dataSchema,
+    }),
+    z.object({
+      ok: z.literal(false),
+      error: z.string(),
+      code: z.string(),
+    }),
+  ]);
+
+// ---------------------------------------------------------------------------
 // Per-tool output schema map
 // ---------------------------------------------------------------------------
 
@@ -149,3 +171,10 @@ export const ToolOutputSchemas = {
   graph: GraphOutputSchema,
   cache: CacheOutputSchema,
 } as const;
+
+/**
+ * Type helper to get the output schema for a given tool.
+ */
+export type ToolOutput<T extends keyof typeof ToolOutputSchemas> = z.infer<
+  (typeof ToolOutputSchemas)[T]
+>;

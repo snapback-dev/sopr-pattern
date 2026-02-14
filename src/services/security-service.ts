@@ -12,10 +12,10 @@
 
 import type {
   ISecurityService,
-  SecuritySeverity,
   SecurityFinding,
   SecurityScanInput,
   SecurityScanResult,
+  SecuritySeverity,
   ServiceResult,
 } from "../contracts/services.js";
 import type { Logger } from "./logger.js";
@@ -89,8 +89,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
     severity: "high",
     message: "Potential command injection via string concatenation in process execution",
     cwe: "CWE-78",
-    recommendation:
-      "Use execFile with argument arrays instead of exec with concatenated strings.",
+    recommendation: "Use execFile with argument arrays instead of exec with concatenated strings.",
   },
 
   // Insecure eval usage
@@ -107,8 +106,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
   // Insecure deserialization
   {
     id: "SEC006",
-    pattern:
-      /JSON\.parse\s*\(\s*(?:req|request|body|params|query|input|user)/gi,
+    pattern: /JSON\.parse\s*\(\s*(?:req|request|body|params|query|input|user)/gi,
     severity: "medium",
     message: "JSON.parse called on unvalidated user input",
     cwe: "CWE-502",
@@ -143,8 +141,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
   // Weak cryptography
   {
     id: "SEC009",
-    pattern:
-      /createHash\s*\(\s*["'](?:md5|sha1)["']\)/gi,
+    pattern: /createHash\s*\(\s*["'](?:md5|sha1)["']\)/gi,
     severity: "medium",
     message: "Use of weak hash algorithm (MD5 or SHA-1)",
     cwe: "CWE-328",
@@ -155,8 +152,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
   // Exposed debug/stack trace
   {
     id: "SEC010",
-    pattern:
-      /(?:stack|stackTrace|err\.stack)\s*(?:\)|,|\})/g,
+    pattern: /(?:stack|stackTrace|err\.stack)\s*(?:\)|,|\})/g,
     severity: "low",
     message: "Error stack trace may be exposed to users",
     cwe: "CWE-209",
@@ -167,8 +163,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
   // Hardcoded IP addresses (non-localhost)
   {
     id: "SEC011",
-    pattern:
-      /["']\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?["']/g,
+    pattern: /["']\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?["']/g,
     severity: "info",
     message: "Hardcoded IP address detected",
     recommendation:
@@ -178,8 +173,7 @@ const BUILT_IN_RULES: readonly SecurityRule[] = [
   // innerHTML / dangerouslySetInnerHTML
   {
     id: "SEC012",
-    pattern:
-      /(?:\.innerHTML\s*=|dangerouslySetInnerHTML)/g,
+    pattern: /(?:\.innerHTML\s*=|dangerouslySetInnerHTML)/g,
     severity: "medium",
     message: "Direct HTML injection pattern detected — potential XSS vulnerability",
     cwe: "CWE-79",
@@ -201,14 +195,12 @@ export type FileReader = (filePath: string) => Promise<string>;
 
 export class SecurityServiceImpl implements ISecurityService {
   constructor(
-    private readonly config: SecurityServiceConfig,
+    _config: SecurityServiceConfig,
     private readonly readFile: FileReader,
     private readonly logger: Logger,
   ) {}
 
-  async scan(
-    input: SecurityScanInput,
-  ): Promise<ServiceResult<SecurityScanResult>> {
+  async scan(input: SecurityScanInput): Promise<ServiceResult<SecurityScanResult>> {
     const startTime = Date.now();
 
     try {
@@ -227,8 +219,7 @@ export class SecurityServiceImpl implements ISecurityService {
         } catch (readErr) {
           this.logger.warn("Could not read file for security scan", {
             file: filePath,
-            error:
-              readErr instanceof Error ? readErr.message : String(readErr),
+            error: readErr instanceof Error ? readErr.message : String(readErr),
           });
         }
       }
@@ -272,9 +263,7 @@ export class SecurityServiceImpl implements ISecurityService {
   // Private helpers
   // -------------------------------------------------------------------------
 
-  private selectRules(
-    ruleFilter?: readonly string[],
-  ): readonly SecurityRule[] {
+  private selectRules(ruleFilter?: readonly string[]): readonly SecurityRule[] {
     if (!ruleFilter || ruleFilter.length === 0) {
       return BUILT_IN_RULES;
     }

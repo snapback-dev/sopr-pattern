@@ -6,7 +6,7 @@
  * by the resilience layer.
  */
 declare module "opossum" {
-  import { EventEmitter } from "events";
+  import { EventEmitter } from "node:events";
 
   interface CircuitBreakerOptions {
     timeout?: number;
@@ -27,11 +27,11 @@ declare module "opossum" {
     enableSnapshots?: boolean;
   }
 
-  class CircuitBreaker<TArgs extends unknown[] = unknown[], TReturn = unknown> extends EventEmitter {
-    constructor(
-      action: (...args: TArgs) => Promise<TReturn>,
-      options?: CircuitBreakerOptions,
-    );
+  class CircuitBreaker<
+    TArgs extends unknown[] = unknown[],
+    TReturn = unknown,
+  > extends EventEmitter {
+    constructor(action: (...args: TArgs) => Promise<TReturn>, options?: CircuitBreakerOptions);
 
     readonly name: string;
     readonly group: string;

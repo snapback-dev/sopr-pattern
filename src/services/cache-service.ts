@@ -12,11 +12,11 @@
  */
 
 import type {
-  ICacheService,
   CachedError,
   CachedPattern,
   ErrorCacheInput,
   ErrorCacheResult,
+  ICacheService,
   PatternCacheInput,
   PatternCacheResult,
   ServiceResult,
@@ -144,19 +144,11 @@ export class CacheServiceImpl implements ICacheService {
     private readonly logger: Logger,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.errorCache = new LRUCache<CachedError>(
-      this.config.maxEntries,
-      this.config.ttlMs,
-    );
-    this.patternCache = new LRUCache<CachedPattern>(
-      this.config.maxEntries,
-      this.config.ttlMs,
-    );
+    this.errorCache = new LRUCache<CachedError>(this.config.maxEntries, this.config.ttlMs);
+    this.patternCache = new LRUCache<CachedPattern>(this.config.maxEntries, this.config.ttlMs);
   }
 
-  async getErrors(
-    input: ErrorCacheInput,
-  ): Promise<ServiceResult<ErrorCacheResult>> {
+  async getErrors(input: ErrorCacheInput): Promise<ServiceResult<ErrorCacheResult>> {
     try {
       const prefix = `error:${input.workspacePath}:`;
 
@@ -212,9 +204,7 @@ export class CacheServiceImpl implements ICacheService {
     }
   }
 
-  async getPatterns(
-    input: PatternCacheInput,
-  ): Promise<ServiceResult<PatternCacheResult>> {
+  async getPatterns(input: PatternCacheInput): Promise<ServiceResult<PatternCacheResult>> {
     try {
       const prefix = `pattern:${input.workspacePath}:`;
 
@@ -240,9 +230,7 @@ export class CacheServiceImpl implements ICacheService {
       // Filter by pattern name if specified
       if (input.patternFilter) {
         const filterLower = input.patternFilter.toLowerCase();
-        patterns = patterns.filter((p) =>
-          p.patternName.toLowerCase().includes(filterLower),
-        );
+        patterns = patterns.filter((p) => p.patternName.toLowerCase().includes(filterLower));
       }
 
       const cacheAge = patterns.length > 0 ? Date.now() - oldestInsert : 0;

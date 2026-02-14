@@ -10,18 +10,17 @@
  * @module services/snapshot-service
  */
 
-import { randomUUID } from "node:crypto";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type {
-  ISnapshotService,
   CreateSnapshotInput,
-  Snapshot,
-  GetSnapshotInput,
-  SnapshotState,
   FinalizeSnapshotInput,
   FinalizeSnapshotResult,
+  GetSnapshotInput,
+  ISnapshotService,
   ServiceResult,
+  Snapshot,
+  SnapshotState,
 } from "../contracts/services.js";
 import type { StorageAdapter } from "./adapters.js";
 import type { Logger } from "./logger.js";
@@ -120,19 +119,13 @@ export class SnapshotServiceImpl implements ISnapshotService {
       };
 
       // Persist the snapshot
-      await this.storage.write(
-        snapshotKey(snapshot.id),
-        JSON.stringify(snapshot),
-      );
+      await this.storage.write(snapshotKey(snapshot.id), JSON.stringify(snapshot));
 
       // Update workspace index
       const updatedIndex = [...existingIndex, snapshot.id];
       if (updatedIndex.length > this.config.maxSnapshots) {
         // Evict oldest snapshots beyond the limit
-        const toEvict = updatedIndex.splice(
-          0,
-          updatedIndex.length - this.config.maxSnapshots,
-        );
+        const toEvict = updatedIndex.splice(0, updatedIndex.length - this.config.maxSnapshots);
         for (const evictId of toEvict) {
           await this.storage.delete(snapshotKey(evictId));
           this.logger.debug("Evicted old snapshot", { snapshotId: evictId });
@@ -160,9 +153,7 @@ export class SnapshotServiceImpl implements ISnapshotService {
 
   async getState(input: GetSnapshotInput): Promise<ServiceResult<SnapshotState>> {
     try {
-      const sessionData = await this.storage.read(
-        sessionKey(input.workspacePath, input.sessionId),
-      );
+      const sessionData = await this.storage.read(sessionKey(input.workspacePath, input.sessionId));
 
       if (!sessionData) {
         return {
@@ -192,14 +183,10 @@ export class SnapshotServiceImpl implements ISnapshotService {
     }
   }
 
-  async finalize(
-    input: FinalizeSnapshotInput,
-  ): Promise<ServiceResult<FinalizeSnapshotResult>> {
+  async finalize(input: FinalizeSnapshotInput): Promise<ServiceResult<FinalizeSnapshotResult>> {
     try {
       // Verify the snapshot exists
-      const snapshotData = await this.storage.read(
-        snapshotKey(input.snapshotId),
-      );
+      const snapshotData = await this.storage.read(snapshotKey(input.snapshotId));
 
       if (!snapshotData) {
         return {
@@ -260,10 +247,7 @@ export class SnapshotServiceImpl implements ISnapshotService {
     return JSON.parse(data) as Snapshot;
   }
 
-  private filesMatch(
-    a: readonly string[],
-    b: readonly string[],
-  ): boolean {
+  private filesMatch(a: readonly string[], b: readonly string[]): boolean {
     if (a.length !== b.length) return false;
     const sortedA = [...a].sort();
     const sortedB = [...b].sort();

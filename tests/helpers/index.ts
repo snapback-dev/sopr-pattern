@@ -10,6 +10,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ToolContext } from "../../src/contracts/context.js";
+import { noOpLogger, noOpProgress } from "../../src/contracts/context.js";
 
 // ---------------------------------------------------------------------------
 // Mock ToolContext
@@ -22,6 +23,9 @@ const MOCK_CONTEXT_DEFAULTS: ToolContext = Object.freeze({
   capabilities: Object.freeze(["git", "sentry"]),
   timestamp: 1_700_000_000_000,
   requestId: "req-test-001",
+  signal: AbortSignal.abort(), // Pre-aborted for safety in tests
+  logger: noOpLogger,
+  progress: noOpProgress,
 });
 
 /**
@@ -33,21 +37,21 @@ const MOCK_CONTEXT_DEFAULTS: ToolContext = Object.freeze({
  * The returned object is frozen via `Object.freeze`, matching the production
  * behaviour of `createToolContext`.
  */
-export function createMockContext(
-  overrides: Partial<ToolContext> = {},
-): ToolContext {
+export function createMockContext(overrides: Partial<ToolContext> = {}): ToolContext {
   const capabilities =
     overrides.capabilities !== undefined
       ? Object.freeze([...overrides.capabilities])
       : MOCK_CONTEXT_DEFAULTS.capabilities;
 
   const ctx: ToolContext = {
-    workspacePath:
-      overrides.workspacePath ?? MOCK_CONTEXT_DEFAULTS.workspacePath,
+    workspacePath: overrides.workspacePath ?? MOCK_CONTEXT_DEFAULTS.workspacePath,
     sessionId: overrides.sessionId ?? MOCK_CONTEXT_DEFAULTS.sessionId,
     capabilities,
     timestamp: overrides.timestamp ?? MOCK_CONTEXT_DEFAULTS.timestamp,
     requestId: overrides.requestId ?? MOCK_CONTEXT_DEFAULTS.requestId,
+    signal: overrides.signal ?? new AbortController().signal,
+    logger: overrides.logger ?? noOpLogger,
+    progress: overrides.progress ?? noOpProgress,
   };
 
   return Object.freeze(ctx);
@@ -142,11 +146,7 @@ export function collectTsFiles(dir: string): string[] {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
-      } else if (
-        entry.isFile() &&
-        entry.name.endsWith(".ts") &&
-        !entry.name.endsWith(".d.ts")
-      ) {
+      } else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
         results.push(fullPath);
       }
     }
@@ -249,10 +249,7 @@ export function resolveLayerFromImport(
  * "services", "contracts", "resilience") or `null` if the file is not
  * inside a recognized layer directory.
  */
-export function getLayerForFile(
-  filePath: string,
-  srcRoot: string,
-): string | null {
+export function getLayerForFile(filePath: string, srcRoot: string): string | null {
   const relativeToSrc = path.relative(srcRoot, filePath);
   if (relativeToSrc.startsWith("..")) {
     return null;
@@ -262,12 +259,7 @@ export function getLayerForFile(
 }
 
 /** SOPR layer directories in dependency order (1 = highest, 4 = lowest). */
-export const SOPR_LAYERS = [
-  "protocol",
-  "registry",
-  "tools",
-  "services",
-] as const;
+export const SOPR_LAYERS = ["protocol", "registry", "tools", "services"] as const;
 
 /** Directories that any layer may import from. */
-export const SHARED_LAYERS = ["contracts", "resilience"] as const;
+export const SHARED_LAYERS = ["contracts", "resilience", "router", "telemetry"] as const;

@@ -18,11 +18,11 @@ import type {
   LearningType,
   LoadLearningsInput,
   LoadLearningsResult,
+  RecordLearningsInput,
+  RecordLearningsResult,
   SaveLearningInput,
   SearchLearningsInput,
   SearchLearningsResult,
-  RecordLearningsInput,
-  RecordLearningsResult,
   ServiceResult,
 } from "../contracts/services.js";
 import type { StorageAdapter } from "./adapters.js";
@@ -71,9 +71,7 @@ export class LearningServiceImpl implements ILearningService {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  async loadTiered(
-    input: LoadLearningsInput,
-  ): Promise<ServiceResult<LoadLearningsResult>> {
+  async loadTiered(input: LoadLearningsInput): Promise<ServiceResult<LoadLearningsResult>> {
     try {
       const allLearnings = await this.loadAllForWorkspace(input.workspacePath);
       const limit = input.limit ?? this.config.defaultLimit;
@@ -93,10 +91,7 @@ export class LearningServiceImpl implements ILearningService {
 
       // Update access counts for returned learnings
       for (const learning of selected) {
-        await this.storage.write(
-          learningKey(learning.id),
-          JSON.stringify(learning),
-        );
+        await this.storage.write(learningKey(learning.id), JSON.stringify(learning));
       }
 
       this.logger.debug("Loaded tiered learnings", {
@@ -142,10 +137,7 @@ export class LearningServiceImpl implements ILearningService {
       };
 
       // Persist the learning
-      await this.storage.write(
-        learningKey(learning.id),
-        JSON.stringify(learning),
-      );
+      await this.storage.write(learningKey(learning.id), JSON.stringify(learning));
 
       // Update workspace index
       const index = await this.loadIndex(input.workspacePath);
@@ -153,19 +145,13 @@ export class LearningServiceImpl implements ILearningService {
 
       // Enforce max learnings by evicting oldest
       if (index.length > this.config.maxLearnings) {
-        const toEvict = index.splice(
-          0,
-          index.length - this.config.maxLearnings,
-        );
+        const toEvict = index.splice(0, index.length - this.config.maxLearnings);
         for (const evictId of toEvict) {
           await this.storage.delete(learningKey(evictId));
         }
       }
 
-      await this.storage.write(
-        workspaceIndexKey(input.workspacePath),
-        JSON.stringify(index),
-      );
+      await this.storage.write(workspaceIndexKey(input.workspacePath), JSON.stringify(index));
 
       this.logger.info("Learning saved", {
         id: learning.id,
@@ -181,9 +167,7 @@ export class LearningServiceImpl implements ILearningService {
     }
   }
 
-  async search(
-    input: SearchLearningsInput,
-  ): Promise<ServiceResult<SearchLearningsResult>> {
+  async search(input: SearchLearningsInput): Promise<ServiceResult<SearchLearningsResult>> {
     try {
       const allLearnings = await this.loadAllForWorkspace(input.workspacePath);
       const limit = input.limit ?? this.config.defaultLimit;
@@ -235,9 +219,7 @@ export class LearningServiceImpl implements ILearningService {
     }
   }
 
-  async recordBatch(
-    input: RecordLearningsInput,
-  ): Promise<ServiceResult<RecordLearningsResult>> {
+  async recordBatch(input: RecordLearningsInput): Promise<ServiceResult<RecordLearningsResult>> {
     try {
       let stored = 0;
       let deduplicated = 0;
@@ -252,8 +234,7 @@ export class LearningServiceImpl implements ILearningService {
 
         if (result.ok) {
           // Check if it was deduplicated by comparing created time
-          const isNew =
-            Date.now() - result.data.createdAt < 1000;
+          const isNew = Date.now() - result.data.createdAt < 1000;
           if (isNew) {
             stored++;
           } else {
@@ -295,9 +276,7 @@ export class LearningServiceImpl implements ILearningService {
     return JSON.parse(data) as string[];
   }
 
-  private async loadAllForWorkspace(
-    workspacePath: string,
-  ): Promise<Learning[]> {
+  private async loadAllForWorkspace(workspacePath: string): Promise<Learning[]> {
     const index = await this.loadIndex(workspacePath);
     const learnings: Learning[] = [];
 
@@ -311,10 +290,7 @@ export class LearningServiceImpl implements ILearningService {
     return learnings;
   }
 
-  private computeRelevance(
-    learning: Learning,
-    input: LoadLearningsInput,
-  ): number {
+  private computeRelevance(learning: Learning, input: LoadLearningsInput): number {
     let score = 0;
 
     // Recency boost: more recent learnings score higher
@@ -340,10 +316,7 @@ export class LearningServiceImpl implements ILearningService {
     if (input.filePaths && input.filePaths.length > 0) {
       for (const filePath of input.filePaths) {
         const fileName = filePath.split("/").pop() ?? "";
-        if (
-          learning.trigger.includes(fileName) ||
-          learning.action.includes(fileName)
-        ) {
+        if (learning.trigger.includes(fileName) || learning.action.includes(fileName)) {
           score += 20;
         }
       }

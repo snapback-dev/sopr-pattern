@@ -13,24 +13,24 @@
  */
 
 import type {
-  IValidationService,
-  ValidationInput,
-  ValidationResult,
-  PatternValidationInput,
-  PatternValidationResult,
   BuildValidationInput,
   BuildValidationResult,
   CoverageInput,
   CoverageResult,
-  HealthScoreInput,
-  HealthScore,
+  Diagnostic,
   EvolutionInput,
   EvolutionResult,
   EvolutionSnapshot,
-  Diagnostic,
-  ServiceResult,
+  HealthScore,
+  HealthScoreInput,
   IGraphService,
   ISecurityService,
+  IValidationService,
+  PatternValidationInput,
+  PatternValidationResult,
+  ServiceResult,
+  ValidationInput,
+  ValidationResult,
 } from "../contracts/services.js";
 import type { StorageAdapter } from "./adapters.js";
 import type { Logger } from "./logger.js";
@@ -147,9 +147,7 @@ export class ValidationServiceImpl implements IValidationService {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  async quickCheck(
-    input: ValidationInput,
-  ): Promise<ServiceResult<ValidationResult>> {
+  async quickCheck(input: ValidationInput): Promise<ServiceResult<ValidationResult>> {
     const startTime = Date.now();
 
     try {
@@ -163,9 +161,7 @@ export class ValidationServiceImpl implements IValidationService {
       );
 
       if (tsResult.exitCode !== 0) {
-        diagnostics.push(
-          ...this.parseTypeScriptErrors(tsResult.stdout + tsResult.stderr),
-        );
+        diagnostics.push(...this.parseTypeScriptErrors(tsResult.stdout + tsResult.stderr));
       }
 
       // Run linter (ESLint)
@@ -179,24 +175,14 @@ export class ValidationServiceImpl implements IValidationService {
         lintArgs.push("--fix");
       }
 
-      const lintResult = await this.safeRunCommand(
-        "npx",
-        lintArgs,
-        input.workspacePath,
-      );
+      const lintResult = await this.safeRunCommand("npx", lintArgs, input.workspacePath);
 
       if (lintResult.exitCode !== 0) {
-        diagnostics.push(
-          ...this.parseLintErrors(lintResult.stdout),
-        );
+        diagnostics.push(...this.parseLintErrors(lintResult.stdout));
       }
 
-      const errorCount = diagnostics.filter(
-        (d) => d.severity === "error",
-      ).length;
-      const warningCount = diagnostics.filter(
-        (d) => d.severity === "warning",
-      ).length;
+      const errorCount = diagnostics.filter((d) => d.severity === "error").length;
+      const warningCount = diagnostics.filter((d) => d.severity === "warning").length;
       const duration = Date.now() - startTime;
 
       this.logger.info("Quick check completed", {
@@ -223,9 +209,7 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  async fullCheck(
-    input: ValidationInput,
-  ): Promise<ServiceResult<ValidationResult>> {
+  async fullCheck(input: ValidationInput): Promise<ServiceResult<ValidationResult>> {
     const startTime = Date.now();
 
     try {
@@ -247,9 +231,7 @@ export class ValidationServiceImpl implements IValidationService {
         for (const finding of securityResult.data.findings) {
           diagnostics.push({
             severity:
-              finding.severity === "critical" || finding.severity === "high"
-                ? "error"
-                : "warning",
+              finding.severity === "critical" || finding.severity === "high" ? "error" : "warning",
             code: finding.rule,
             message: `[Security] ${finding.message}`,
             file: finding.file,
@@ -273,12 +255,8 @@ export class ValidationServiceImpl implements IValidationService {
         }
       }
 
-      const errorCount = diagnostics.filter(
-        (d) => d.severity === "error",
-      ).length;
-      const warningCount = diagnostics.filter(
-        (d) => d.severity === "warning",
-      ).length;
+      const errorCount = diagnostics.filter((d) => d.severity === "error").length;
+      const warningCount = diagnostics.filter((d) => d.severity === "warning").length;
       const duration = Date.now() - startTime;
 
       // Store evolution snapshot
@@ -366,24 +344,16 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  async checkBuild(
-    input: BuildValidationInput,
-  ): Promise<ServiceResult<BuildValidationResult>> {
+  async checkBuild(input: BuildValidationInput): Promise<ServiceResult<BuildValidationResult>> {
     const startTime = Date.now();
 
     try {
-      const result = await this.safeRunCommand(
-        "npx",
-        ["tsc", "-b"],
-        input.workspacePath,
-      );
+      const result = await this.safeRunCommand("npx", ["tsc", "-b"], input.workspacePath);
 
       const diagnostics: Diagnostic[] = [];
 
       if (result.exitCode !== 0) {
-        diagnostics.push(
-          ...this.parseTypeScriptErrors(result.stdout + result.stderr),
-        );
+        diagnostics.push(...this.parseTypeScriptErrors(result.stdout + result.stderr));
       }
 
       const duration = Date.now() - startTime;
@@ -409,12 +379,9 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  async checkCoverage(
-    input: CoverageInput,
-  ): Promise<ServiceResult<CoverageResult>> {
+  async checkCoverage(input: CoverageInput): Promise<ServiceResult<CoverageResult>> {
     try {
-      const threshold =
-        input.threshold ?? this.config.coverageThreshold;
+      const threshold = input.threshold ?? this.config.coverageThreshold;
 
       const result = await this.safeRunCommand(
         "npx",
@@ -455,9 +422,7 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  async computeHealthScore(
-    input: HealthScoreInput,
-  ): Promise<ServiceResult<HealthScore>> {
+  async computeHealthScore(input: HealthScoreInput): Promise<ServiceResult<HealthScore>> {
     try {
       // Run multiple checks to compute composite health
       const [quickResult, graphHealth] = await Promise.all([
@@ -473,11 +438,10 @@ export class ValidationServiceImpl implements IValidationService {
 
       // Code quality dimension (from quick check)
       if (quickResult.ok) {
-        const totalIssues =
-          quickResult.data.errorCount + quickResult.data.warningCount;
-        dimensions["codeQuality"] = Math.max(0, 100 - totalIssues * 5);
+        const totalIssues = quickResult.data.errorCount + quickResult.data.warningCount;
+        dimensions.codeQuality = Math.max(0, 100 - totalIssues * 5);
       } else {
-        dimensions["codeQuality"] = 0;
+        dimensions.codeQuality = 0;
       }
 
       // Architecture dimension (from graph health)
@@ -487,9 +451,9 @@ export class ValidationServiceImpl implements IValidationService {
         archScore -= gh.circularCount * 15;
         archScore -= gh.orphanCount * 5;
         archScore -= Math.max(0, gh.maxFanOut - 10) * 3;
-        dimensions["architecture"] = Math.max(0, archScore);
+        dimensions.architecture = Math.max(0, archScore);
       } else {
-        dimensions["architecture"] = 50; // Unknown, assume moderate
+        dimensions.architecture = 50; // Unknown, assume moderate
       }
 
       // Compute overall score as weighted average
@@ -528,13 +492,9 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  async analyzeEvolution(
-    input: EvolutionInput,
-  ): Promise<ServiceResult<EvolutionResult>> {
+  async analyzeEvolution(input: EvolutionInput): Promise<ServiceResult<EvolutionResult>> {
     try {
-      const snapshots = await this.loadEvolutionSnapshots(
-        input.workspacePath,
-      );
+      const snapshots = await this.loadEvolutionSnapshots(input.workspacePath);
 
       let filtered = snapshots;
       if (input.since !== undefined) {
@@ -548,10 +508,8 @@ export class ValidationServiceImpl implements IValidationService {
         const firstHalf = filtered.slice(0, Math.floor(filtered.length / 2));
         const secondHalf = filtered.slice(Math.floor(filtered.length / 2));
 
-        const avgFirst =
-          firstHalf.reduce((sum, s) => sum + s.score, 0) / firstHalf.length;
-        const avgSecond =
-          secondHalf.reduce((sum, s) => sum + s.score, 0) / secondHalf.length;
+        const avgFirst = firstHalf.reduce((sum, s) => sum + s.score, 0) / firstHalf.length;
+        const avgSecond = secondHalf.reduce((sum, s) => sum + s.score, 0) / secondHalf.length;
 
         if (avgSecond > avgFirst + 5) {
           trend = "improving";
@@ -599,8 +557,7 @@ export class ValidationServiceImpl implements IValidationService {
   private parseTypeScriptErrors(output: string): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     // TypeScript error format: file(line,col): error TSxxxx: message
-    const errorRegex =
-      /([^(\s]+)\((\d+),(\d+)\):\s*(error|warning)\s+(TS\d+):\s*(.*)/g;
+    const errorRegex = /([^(\s]+)\((\d+),(\d+)\):\s*(error|warning)\s+(TS\d+):\s*(.*)/g;
     let match: RegExpExecArray | null;
 
     while ((match = errorRegex.exec(output)) !== null) {
@@ -697,9 +654,7 @@ export class ValidationServiceImpl implements IValidationService {
 
   private computeScoreFromDiagnostics(diagnostics: readonly Diagnostic[]): number {
     const errorCount = diagnostics.filter((d) => d.severity === "error").length;
-    const warningCount = diagnostics.filter(
-      (d) => d.severity === "warning",
-    ).length;
+    const warningCount = diagnostics.filter((d) => d.severity === "warning").length;
     return Math.max(0, 100 - errorCount * 10 - warningCount * 2);
   }
 
@@ -713,16 +668,10 @@ export class ValidationServiceImpl implements IValidationService {
 
       // Keep only the most recent N snapshots
       if (snapshots.length > this.config.maxEvolutionSnapshots) {
-        snapshots.splice(
-          0,
-          snapshots.length - this.config.maxEvolutionSnapshots,
-        );
+        snapshots.splice(0, snapshots.length - this.config.maxEvolutionSnapshots);
       }
 
-      await this.storage.write(
-        evolutionKey(workspacePath),
-        JSON.stringify(snapshots),
-      );
+      await this.storage.write(evolutionKey(workspacePath), JSON.stringify(snapshots));
     } catch (err) {
       this.logger.warn("Failed to record evolution snapshot", {
         error: err instanceof Error ? err.message : String(err),
@@ -730,9 +679,7 @@ export class ValidationServiceImpl implements IValidationService {
     }
   }
 
-  private async loadEvolutionSnapshots(
-    workspacePath: string,
-  ): Promise<EvolutionSnapshot[]> {
+  private async loadEvolutionSnapshots(workspacePath: string): Promise<EvolutionSnapshot[]> {
     const data = await this.storage.read(evolutionKey(workspacePath));
     if (!data) return [];
     return JSON.parse(data) as EvolutionSnapshot[];
@@ -752,10 +699,8 @@ export class ValidationServiceImpl implements IValidationService {
     const firstHalf = recentScores.slice(0, Math.floor(recentScores.length / 2));
     const secondHalf = recentScores.slice(Math.floor(recentScores.length / 2));
 
-    const avgFirst =
-      firstHalf.reduce((sum, s) => sum + s, 0) / firstHalf.length;
-    const avgSecond =
-      secondHalf.reduce((sum, s) => sum + s, 0) / secondHalf.length;
+    const avgFirst = firstHalf.reduce((sum, s) => sum + s, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((sum, s) => sum + s, 0) / secondHalf.length;
 
     if (avgSecond > avgFirst + 5) return "improving";
     if (avgSecond < avgFirst - 5) return "declining";

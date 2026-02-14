@@ -6,6 +6,8 @@
  *   2. Validate incoming arguments against each tool's Zod schema.
  *   3. Resolve the correct mode handler from validated input.
  *   4. Return MCP-formatted tool listings for `tools/list`.
+ *   5. Apply per-request timeout to prevent hung requests.
+ *   6. Optionally validate outputs against schema.
  *
  * The registry contains ZERO business logic. It validates, dispatches,
  * and formats — nothing more.
@@ -16,15 +18,65 @@
 import type { ToolContext } from "../contracts/context.js";
 import type { CallToolResult, TextContent } from "../protocol/types.js";
 import {
-  ToolNotFoundError,
+  HandlerExecutionError,
   InvalidInputError,
   ModeNotFoundError,
-  HandlerExecutionError,
+  OutputValidationError,
+  RequestCancelledError,
+  RequestTimeoutError,
+  ToolNotFoundError,
 } from "../protocol/types.js";
+import type { TierMode, TierRouter } from "../router/tier-router.js";
+import type { TelemetryTracker } from "../telemetry/tracker.js";
+import type { JsonSchemaObject } from "./schema-converter.js";
+import { zodSchemaToJsonSchema } from "./schema-converter.js";
 import type { ToolDefinition, ToolRegistryConfig } from "./types.js";
 import { DEFAULT_REGISTRY_CONFIG } from "./types.js";
-import { zodSchemaToJsonSchema } from "./schema-converter.js";
-import type { JsonSchemaObject } from "./schema-converter.js";
+
+// ---------------------------------------------------------------------------
+// Timeout Helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Wraps a promise with a timeout. Rejects with RequestTimeoutError if
+ * the promise doesn't resolve within the specified time.
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, signal?: AbortSignal): Promise<T> {
+  if (timeoutMs <= 0) {
+    return promise;
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    // Handle abort signal
+    if (signal?.aborted) {
+      reject(new RequestCancelledError());
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      reject(new RequestTimeoutError(timeoutMs));
+    }, timeoutMs);
+
+    const abortHandler = () => {
+      clearTimeout(timeoutId);
+      reject(new RequestCancelledError());
+    };
+
+    signal?.addEventListener("abort", abortHandler, { once: true });
+
+    promise
+      .then((result) => {
+        clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", abortHandler);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", abortHandler);
+        reject(error);
+      });
+  });
+}
 
 // ---------------------------------------------------------------------------
 // MCP Tool Listing Types
@@ -46,9 +98,28 @@ interface McpToolListing {
 export class ToolRegistry {
   private readonly tools: Map<string, ToolDefinition> = new Map();
   private readonly config: ToolRegistryConfig;
+  private router: TierRouter | null = null;
+  private telemetry: TelemetryTracker | null = null;
 
   constructor(config?: Partial<ToolRegistryConfig>) {
     this.config = { ...DEFAULT_REGISTRY_CONFIG, ...config };
+  }
+
+  /**
+   * Attach a tier router for free/pro delegation.
+   * When set, the registry checks whether tool calls should be
+   * delegated to the daemon before executing locally.
+   */
+  setRouter(router: TierRouter): void {
+    this.router = router;
+  }
+
+  /**
+   * Attach a telemetry tracker for usage analytics.
+   * When set, all tool executions are tracked for the data flywheel.
+   */
+  setTelemetry(telemetry: TelemetryTracker): void {
+    this.telemetry = telemetry;
   }
 
   // -----------------------------------------------------------------------
@@ -63,9 +134,7 @@ export class ToolRegistry {
    */
   register(definition: ToolDefinition): void {
     if (this.tools.has(definition.name)) {
-      throw new Error(
-        `Tool "${definition.name}" is already registered`,
-      );
+      throw new Error(`Tool "${definition.name}" is already registered`);
     }
     this.tools.set(definition.name, definition);
   }
@@ -112,30 +181,98 @@ export class ToolRegistry {
    * Validate input and dispatch to the appropriate mode handler.
    *
    * Execution pipeline:
-   *   1. Look up tool by name            → ToolNotFoundError
-   *   2. Parse input with Zod safeParse   → InvalidInputError
-   *   3. Extract mode from parsed input   → ModeNotFoundError
-   *   4. Look up mode handler             → ModeNotFoundError
-   *   5. Call handler(params, context)     → HandlerExecutionError
-   *   6. Format result as CallToolResult
+   *   1. Check for early cancellation        → RequestCancelledError
+   *   2. Look up tool by name                → ToolNotFoundError
+   *   3. Parse input with Zod safeParse      → InvalidInputError
+   *   4. Extract mode from parsed input      → InvalidInputError
+   *   5. Look up mode handler                → ModeNotFoundError
+   *   6. Execute handler with timeout        → HandlerExecutionError | RequestTimeoutError
+   *   7. Validate output (if schema exists)  → OutputValidationError
+   *   8. Format result as CallToolResult
    *
    * @param name    - Tool name from the MCP `tools/call` request.
    * @param args    - Raw arguments object from the MCP request.
    * @param context - Frozen, immutable request-scoped context.
    * @returns An MCP-compliant `CallToolResult`.
    */
-  async execute(
+  async execute(name: string, args: unknown, context: ToolContext): Promise<CallToolResult> {
+    const startTime = Date.now();
+    let tier: TierMode = "free";
+    let mode = "unknown";
+    let success = false;
+
+    try {
+      const result = await this.executeInternal(name, args, context);
+
+      // Extract mode for telemetry (best effort)
+      if (typeof args === "object" && args !== null && "mode" in args) {
+        mode = String((args as Record<string, unknown>).mode);
+      }
+      tier = await this.getCurrentTier();
+      success = true;
+      return result;
+    } finally {
+      this.trackToolCall(name, mode, tier, Date.now() - startTime, success);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Internal Execution Pipeline
+  // -----------------------------------------------------------------------
+
+  private async executeInternal(
     name: string,
     args: unknown,
     context: ToolContext,
   ): Promise<CallToolResult> {
-    // 1. Look up tool
+    if (context.signal.aborted) {
+      throw new RequestCancelledError();
+    }
+
+    const delegated = await this.tryDaemonDelegation(name, args, context);
+    if (delegated) return delegated;
+
     const tool = this.tools.get(name);
     if (!tool) {
       throw new ToolNotFoundError(name);
     }
 
-    // 2. Validate input with Zod
+    const validatedInput = this.validateInput(tool, args);
+    const mode = this.extractMode(validatedInput);
+    const handler = this.resolveHandler(tool, name, mode);
+    const result = await this.invokeHandler(handler, validatedInput, name, mode, context);
+    this.validateOutput(tool, result, name, mode, context);
+
+    return this.formatResult(result);
+  }
+
+  private async tryDaemonDelegation(
+    name: string,
+    args: unknown,
+    context: ToolContext,
+  ): Promise<CallToolResult | null> {
+    if (!this.router) return null;
+
+    const decision = await this.router.route(name);
+
+    if (decision.action === "upgrade-prompt") {
+      return this.formatResult(this.router.createUpgradePrompt(name));
+    }
+
+    if (decision.action === "delegate") {
+      try {
+        return this.formatResult(await this.router.delegate(name, args));
+      } catch {
+        context.logger.warn(`Daemon delegation failed for ${name}, falling back to local`, {
+          tool: name,
+        });
+      }
+    }
+
+    return null;
+  }
+
+  private validateInput(tool: ToolDefinition, args: unknown): Record<string, unknown> {
     const parseResult = tool.inputSchema.safeParse(args);
     if (!parseResult.success) {
       const issues = parseResult.error.issues.map(
@@ -143,37 +280,108 @@ export class ToolRegistry {
       );
       throw new InvalidInputError(issues);
     }
+    return parseResult.data as Record<string, unknown>;
+  }
 
-    const validatedInput = parseResult.data as Record<string, unknown>;
-
-    // 3. Extract mode
-    const mode = validatedInput["mode"];
+  private extractMode(validatedInput: Record<string, unknown>): string {
+    const mode = validatedInput.mode;
     if (typeof mode !== "string") {
       throw new InvalidInputError(["mode: Expected a string mode field"]);
     }
+    return mode;
+  }
 
-    // 4. Look up mode handler
+  private resolveHandler(
+    tool: ToolDefinition,
+    name: string,
+    mode: string,
+  ): ToolDefinition["modes"][string] {
     const handler = tool.modes[mode];
     if (!handler) {
       throw new ModeNotFoundError(name, mode);
     }
+    return handler;
+  }
 
-    // 5. Execute handler
-    let result: unknown;
+  private async invokeHandler(
+    handler: ToolDefinition["modes"][string],
+    input: Record<string, unknown>,
+    name: string,
+    mode: string,
+    context: ToolContext,
+  ): Promise<unknown> {
     try {
-      result = await handler(validatedInput, context);
+      return await withTimeout(
+        handler(input, context),
+        this.config.defaultTimeoutMs,
+        context.signal,
+      );
     } catch (error: unknown) {
+      if (error instanceof RequestTimeoutError || error instanceof RequestCancelledError) {
+        throw error;
+      }
       if (this.config.verbose) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(
-          `[ToolRegistry] Handler error in ${name}/${mode}: ${message}`,
-        );
+        context.logger.error(`Handler error in ${name}/${mode}`, {
+          error: message,
+          tool: name,
+          mode,
+        });
       }
       throw new HandlerExecutionError(name, mode);
     }
+  }
 
-    // 6. Format result
-    return this.formatResult(result);
+  private validateOutput(
+    tool: ToolDefinition,
+    result: unknown,
+    name: string,
+    mode: string,
+    context: ToolContext,
+  ): void {
+    if (!this.config.validateOutputs || !tool.outputSchema) return;
+
+    const outputResult = tool.outputSchema.safeParse(result);
+    if (!outputResult.success) {
+      const issues = outputResult.error.issues.map(
+        (issue) => `${issue.path.join(".")}: ${issue.message}`,
+      );
+      if (this.config.verbose) {
+        context.logger.error(`Output validation failed for ${name}/${mode}`, {
+          issues,
+          tool: name,
+          mode,
+        });
+      }
+      throw new OutputValidationError(name, issues);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Router & Telemetry Helpers
+  // -----------------------------------------------------------------------
+
+  private async getCurrentTier(): Promise<TierMode> {
+    if (!this.router) return "free";
+    return this.router.getMode();
+  }
+
+  private trackToolCall(
+    tool: string,
+    mode: string,
+    tier: TierMode,
+    durationMs: number,
+    success: boolean,
+  ): void {
+    if (!this.telemetry) return;
+    this.telemetry.track({
+      event: "tool_call",
+      tool,
+      mode,
+      tier,
+      durationMs,
+      success,
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -187,8 +395,7 @@ export class ToolRegistry {
    * Otherwise, it is JSON-serialized into a text block.
    */
   private formatResult(result: unknown): CallToolResult {
-    const text =
-      typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
 
     const content: TextContent[] = [{ type: "text", text }];
 

@@ -18,7 +18,7 @@ import { PatternTypeSchema } from "./shared.js";
 
 export const SnapInputSchema = z.object({
   /** Operation mode for the snap tool. */
-  mode: z.enum(["start", "check", "context", "end"]),
+  mode: z.enum(["start", "check", "context", "end", "undo"]),
   /** Task summary — required when mode is "start". */
   task: z.string().min(1).optional(),
   /** Files relevant to this operation. */
@@ -26,9 +26,7 @@ export const SnapInputSchema = z.object({
   /** Keywords for pattern matching and context retrieval. */
   keywords: z.array(z.string().min(1)).optional(),
   /** Developer intent hint for context-aware behaviour. */
-  intent: z
-    .enum(["implement", "debug", "refactor", "review", "explore"])
-    .optional(),
+  intent: z.enum(["implement", "debug", "refactor", "review", "explore"]).optional(),
 });
 
 export type SnapInput = z.infer<typeof SnapInputSchema>;

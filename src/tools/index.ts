@@ -8,10 +8,10 @@
  * @module tools
  */
 
-export { createSnapHandlers, type SnapDeps } from "./snap.js";
-export { createCheckHandlers, type CheckDeps } from "./check.js";
-export { createLearnHandlers, type LearnDeps } from "./learn.js";
-export { createIntegrateHandlers, type IntegrateDeps } from "./integrate.js";
-export { createPulseHandlers, type PulseDeps } from "./pulse.js";
+export { type CacheDeps, createCacheHandlers } from "./cache.js";
+export { type CheckDeps, createCheckHandlers } from "./check.js";
 export { createGraphHandlers, type GraphDeps } from "./graph.js";
-export { createCacheHandlers, type CacheDeps } from "./cache.js";
+export { createIntegrateHandlers, type IntegrateDeps } from "./integrate.js";
+export { createLearnHandlers, type LearnDeps } from "./learn.js";
+export { createPulseHandlers, type PulseDeps } from "./pulse.js";
+export { createSnapHandlers, type SnapDeps } from "./snap.js";

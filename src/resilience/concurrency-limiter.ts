@@ -129,11 +129,7 @@ export class ConcurrencyLimiter {
           if (idx !== -1) {
             this.queue.splice(idx, 1);
           }
-          reject(
-            new Error(
-              `ConcurrencyLimiter: queue timeout after ${this.queueTimeout}ms`,
-            ),
-          );
+          reject(new Error(`ConcurrencyLimiter: queue timeout after ${this.queueTimeout}ms`));
         }, this.queueTimeout);
       }
 

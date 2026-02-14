@@ -53,11 +53,8 @@ const DEFAULTS: RetryConfig = {
  * Jitter is uniformly distributed over [0, computedDelay) so the result
  * is always in [computedDelay, 2 * computedDelay).
  */
-function computeDelay(
-  attempt: number,
-  config: RetryConfig,
-): number {
-  const exponential = config.baseDelayMs * Math.pow(2, attempt);
+function computeDelay(attempt: number, config: RetryConfig): number {
+  const exponential = config.baseDelayMs * 2 ** attempt;
   const capped = Math.min(exponential, config.maxDelayMs);
 
   if (!config.jitter) return capped;

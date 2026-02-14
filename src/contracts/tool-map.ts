@@ -93,7 +93,7 @@ export interface ToolMapEntry {
 /**
  * Complete tool consolidation map.
  *
- * 7 tools, 26 modes, backed by 7 injectable services.
+ * 7 tools, 27 modes, backed by 7 injectable services.
  *
  * Frozen at the type level via `as const` so the registry can derive
  * literal types for mode names, service lists, etc.
@@ -105,7 +105,7 @@ export const TOOL_MAP = {
   snap: {
     name: "snap",
     description:
-      "Snapshot lifecycle. Modes: start (begin task), check (quick validate), context (get context), end (complete task).",
+      "Snapshot lifecycle. Modes: start (begin task), check (validate), context (get context), end (complete), undo (revert + mask).",
     modes: {
       start: {
         description: "Begin a new task: create snapshot, load learnings, enrich context.",
@@ -129,6 +129,12 @@ export const TOOL_MAP = {
         description: "Complete a task: finalize snapshot, persist learnings.",
         handler: "handleSnapEnd",
         services: ["SnapshotService", "LearningService"],
+        execution: "sequential",
+      },
+      undo: {
+        description: "Revert to snapshot and generate context masking instruction for LLM.",
+        handler: "handleSnapUndo",
+        services: ["SnapshotService"],
         execution: "sequential",
       },
     },
@@ -277,7 +283,8 @@ export const TOOL_MAP = {
     description: "System health. Modes: health (aggregate service and codebase status).",
     modes: {
       health: {
-        description: "Aggregate health check across validation, integrations, and dependency graph.",
+        description:
+          "Aggregate health check across validation, integrations, and dependency graph.",
         handler: "handlePulseHealth",
         services: ["ValidationService", "IntegrationService", "GraphService"],
         execution: "parallel",
@@ -313,7 +320,8 @@ export const TOOL_MAP = {
   // -------------------------------------------------------------------
   cache: {
     name: "cache",
-    description: "Cache operations. Modes: errors (cached error data), patterns (cached pattern data).",
+    description:
+      "Cache operations. Modes: errors (cached error data), patterns (cached pattern data).",
     modes: {
       errors: {
         description: "Retrieve or refresh cached error diagnostics.",

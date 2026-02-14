@@ -31,13 +31,13 @@
  */
 
 import {
+  type BreakerRegistry,
   type CircuitBreakerConfig,
   createBreakerRegistry,
-  type BreakerRegistry,
 } from "./circuit-breaker.js";
-import { type RetryConfig, withRetry } from "./retry.js";
 import { type ConcurrencyConfig, ConcurrencyLimiter } from "./concurrency-limiter.js";
 import { type Logger, withGracefulDegradation } from "./graceful.js";
+import { type RetryConfig, withRetry } from "./retry.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -107,10 +107,8 @@ export function withResilience<TInput, TOutput>(
 
   // Extract config values, normalising `false` (disabled) to `undefined`.
   const retryOpt = config?.retry === false ? undefined : config?.retry;
-  const concurrencyOpt =
-    config?.concurrency === false ? undefined : config?.concurrency;
-  const breakerOpt =
-    config?.circuitBreaker === false ? undefined : config?.circuitBreaker;
+  const concurrencyOpt = config?.concurrency === false ? undefined : config?.concurrency;
+  const breakerOpt = config?.circuitBreaker === false ? undefined : config?.circuitBreaker;
 
   const retryDisabled = config?.retry === false;
   const concurrencyDisabled = config?.concurrency === false;
@@ -122,8 +120,7 @@ export function withResilience<TInput, TOutput>(
   if (retryDisabled) {
     retryWrapped = fn;
   } else {
-    retryWrapped = (input: TInput) =>
-      withRetry(() => fn(input), retryOpt);
+    retryWrapped = (input: TInput) => withRetry(() => fn(input), retryOpt);
   }
 
   // -- Layer 2: Concurrency limiter --------------------------------------
@@ -133,8 +130,7 @@ export function withResilience<TInput, TOutput>(
     concurrencyWrapped = retryWrapped;
   } else {
     const limiter = new ConcurrencyLimiter(concurrencyOpt);
-    concurrencyWrapped = (input: TInput) =>
-      limiter.execute(() => retryWrapped(input));
+    concurrencyWrapped = (input: TInput) => limiter.execute(() => retryWrapped(input));
   }
 
   // -- Layer 3: Circuit breaker -------------------------------------------

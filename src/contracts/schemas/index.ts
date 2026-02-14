@@ -12,39 +12,37 @@
 // ---------------------------------------------------------------------------
 
 export {
-  // Enums / atomic schemas
-  SeveritySchema,
-  PatternTypeSchema,
-  ServiceStatusSchema,
+  type CircuitState,
   CircuitStateSchema,
-  GraphNodeTypeSchema,
-
+  type FileInfo,
   // Composite schemas
   FileInfoSchema,
-  ValidationErrorSchema,
-  PatternSchema,
-  ViolationSchema,
-  LearningSchema,
-  RiskScoreSchema,
-  HealthStatusSchema,
-  GraphNodeSchema,
+  type GraphEdge,
   GraphEdgeSchema,
-
+  type GraphNode,
+  GraphNodeSchema,
+  type GraphNodeType,
+  GraphNodeTypeSchema,
+  type HealthStatus,
+  HealthStatusSchema,
+  type Learning,
+  LearningSchema,
+  type Pattern,
+  PatternSchema,
+  type PatternType,
+  PatternTypeSchema,
+  type RiskScore,
+  RiskScoreSchema,
+  type ServiceStatus,
+  ServiceStatusSchema,
   // Inferred types
   type Severity,
-  type PatternType,
-  type ServiceStatus,
-  type CircuitState,
-  type GraphNodeType,
-  type FileInfo,
+  // Enums / atomic schemas
+  SeveritySchema,
   type ValidationError,
-  type Pattern,
+  ValidationErrorSchema,
   type Violation,
-  type Learning,
-  type RiskScore,
-  type HealthStatus,
-  type GraphNode,
-  type GraphEdge,
+  ViolationSchema,
 } from "./shared.js";
 
 // ---------------------------------------------------------------------------
@@ -52,22 +50,21 @@ export {
 // ---------------------------------------------------------------------------
 
 export {
-  SnapInputSchema,
-  CheckInputSchema,
-  LearnInputSchema,
-  IntegrateInputSchema,
-  PulseInputSchema,
-  GraphInputSchema,
-  CacheInputSchema,
-  ToolInputSchemas,
-
-  type SnapInput,
-  type CheckInput,
-  type LearnInput,
-  type IntegrateInput,
-  type PulseInput,
-  type GraphInput,
   type CacheInput,
+  CacheInputSchema,
+  type CheckInput,
+  CheckInputSchema,
+  type GraphInput,
+  GraphInputSchema,
+  type IntegrateInput,
+  IntegrateInputSchema,
+  type LearnInput,
+  LearnInputSchema,
+  type PulseInput,
+  PulseInputSchema,
+  type SnapInput,
+  SnapInputSchema,
+  ToolInputSchemas,
   type ToolName,
 } from "./tool-inputs.js";
 
@@ -76,22 +73,21 @@ export {
 // ---------------------------------------------------------------------------
 
 export {
-  SnapOutputSchema,
-  CheckOutputSchema,
-  LearnOutputSchema,
-  IntegrateOutputSchema,
-  PulseOutputSchema,
-  GraphOutputSchema,
-  CacheOutputSchema,
-  ToolOutputSchemas,
-
-  type SnapOutput,
-  type CheckOutput,
-  type LearnOutput,
-  type IntegrateOutput,
-  type PulseOutput,
-  type GraphOutput,
   type CacheOutput,
+  CacheOutputSchema,
+  type CheckOutput,
+  CheckOutputSchema,
+  type GraphOutput,
+  GraphOutputSchema,
+  type IntegrateOutput,
+  IntegrateOutputSchema,
+  type LearnOutput,
+  LearnOutputSchema,
+  type PulseOutput,
+  PulseOutputSchema,
+  type SnapOutput,
+  SnapOutputSchema,
+  ToolOutputSchemas,
 } from "./tool-outputs.js";
 
 // ---------------------------------------------------------------------------
@@ -99,17 +95,17 @@ export {
 // ---------------------------------------------------------------------------
 
 export {
-  WireType,
-  WireFormatError,
-  encode,
   decode,
-  encodeSnap,
+  encode,
+  encodeCache,
   encodeCheck,
   encodeEnd,
-  encodeViolation,
+  encodeGraph,
+  encodeIntegrate,
   encodeLearning,
   encodePulse,
-  encodeGraph,
-  encodeCache,
-  encodeIntegrate,
+  encodeSnap,
+  encodeViolation,
+  WireFormatError,
+  WireType,
 } from "../wire-format.js";

@@ -61,13 +61,8 @@ const CODE_TO_TYPE: Record<string, WireType | undefined> = Object.fromEntries(
  * // => "🧢|C|passed:true|errorCount:0|warningCount:2"
  * ```
  */
-export function encode(
-  type: WireType,
-  data: Record<string, unknown>,
-): string {
-  const fields = Object.entries(data).map(
-    ([key, value]) => `${key}:${serializeValue(value)}`,
-  );
+export function encode(type: WireType, data: Record<string, unknown>): string {
+  const fields = Object.entries(data).map(([key, value]) => `${key}:${serializeValue(value)}`);
   return [WIRE_PREFIX, type, ...fields].join(SEPARATOR);
 }
 
@@ -84,9 +79,7 @@ export function encode(
  * // => { type: WireType.Check, data: { passed: true, errorCount: 0, warningCount: 2 } }
  * ```
  */
-export function decode(
-  wire: string,
-): { type: WireType; data: Record<string, unknown> } {
+export function decode(wire: string): { type: WireType; data: Record<string, unknown> } {
   // Split on unescaped pipe characters only.
   // A pipe is "escaped" if preceded by a backslash.
   const parts = splitUnescaped(wire, SEPARATOR);
@@ -173,10 +166,7 @@ export function encodeEnd(payload: {
 }
 
 /** Encode a violation report. */
-export function encodeViolation(payload: {
-  count: number;
-  promotionStatus: string;
-}): string {
+export function encodeViolation(payload: { count: number; promotionStatus: string }): string {
   return encode(WireType.Violation, {
     count: payload.count,
     status: payload.promotionStatus,
@@ -204,10 +194,7 @@ export function encodePulse(payload: {
 }
 
 /** Encode a graph output. */
-export function encodeGraph(payload: {
-  nodeCount: number;
-  edgeCount: number;
-}): string {
+export function encodeGraph(payload: { nodeCount: number; edgeCount: number }): string {
   return encode(WireType.Graph, {
     nodes: payload.nodeCount,
     edges: payload.edgeCount,
@@ -215,10 +202,7 @@ export function encodeGraph(payload: {
 }
 
 /** Encode a cache output. */
-export function encodeCache(payload: {
-  hit: boolean;
-  key: string;
-}): string {
+export function encodeCache(payload: { hit: boolean; key: string }): string {
   return encode(WireType.Cache, {
     hit: payload.hit,
     key: payload.key,
@@ -226,10 +210,7 @@ export function encodeCache(payload: {
 }
 
 /** Encode an integration output. */
-export function encodeIntegrate(payload: {
-  provider: string;
-  enriched: boolean;
-}): string {
+export function encodeIntegrate(payload: { provider: string; enriched: boolean }): string {
   return encode(WireType.Integrate, {
     provider: payload.provider,
     enriched: payload.enriched,
@@ -256,7 +237,7 @@ function splitUnescaped(input: string, delimiter: string): string[] {
     // Check if this position is an escaped delimiter
     if (char === "\\" && nextChar === delimiter) {
       // Keep the escaped sequence intact for later unescaping
-      current += "\\" + delimiter;
+      current += `\\${delimiter}`;
       i++; // skip next char
     } else if (char === delimiter) {
       results.push(current);

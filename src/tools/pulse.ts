@@ -13,9 +13,10 @@
 import type { ToolContext } from "../contracts/context.js";
 import type { PulseInput } from "../contracts/schemas/tool-inputs.js";
 import type {
-  IValidationService,
-  IIntegrationService,
   IGraphService,
+  IIntegrationService,
+  IValidationService,
+  ServiceResult,
 } from "../contracts/services.js";
 
 /** Service dependencies injected at registration time. */
@@ -25,28 +26,54 @@ export interface PulseDeps {
   readonly graphService: IGraphService;
 }
 
+/**
+ * Helper to log service errors and extract data.
+ */
+function unwrapResult<T>(
+  result: ServiceResult<T>,
+  serviceName: string,
+  ctx: ToolContext,
+): T | null {
+  if (result.ok) {
+    return result.data;
+  }
+  ctx.logger.warn(`${serviceName} failed`, {
+    error: result.error,
+    code: result.code,
+    requestId: ctx.requestId,
+  });
+  return null;
+}
+
 /** Creates pulse tool mode handlers with injected dependencies. */
 export function createPulseHandlers(deps: PulseDeps) {
   return {
     async health(_params: PulseInput, ctx: ToolContext) {
-      const [validationHealth, integrationHealth, graphHealth] =
-        await Promise.all([
-          deps.validationService.computeHealthScore({
-            workspacePath: ctx.workspacePath,
-          }),
-          deps.integrationService.checkHealth({
-            workspacePath: ctx.workspacePath,
-            capabilities: ctx.capabilities,
-          }),
-          deps.graphService.computeHealth({
-            workspacePath: ctx.workspacePath,
-          }),
-        ]);
+      ctx.progress("Checking system health...", 0);
+
+      const [validationHealth, integrationHealth, graphHealth] = await Promise.all([
+        deps.validationService.computeHealthScore({
+          workspacePath: ctx.workspacePath,
+        }),
+        deps.integrationService.checkHealth({
+          workspacePath: ctx.workspacePath,
+          capabilities: ctx.capabilities,
+        }),
+        deps.graphService.computeHealth({
+          workspacePath: ctx.workspacePath,
+        }),
+      ]);
+
+      ctx.progress("Complete", 100);
 
       return {
-        validationHealth: validationHealth.ok ? validationHealth.data : null,
+        validationHealth: unwrapResult(
+          validationHealth,
+          "ValidationService.computeHealthScore",
+          ctx,
+        ),
         integrationHealth,
-        graphHealth: graphHealth.ok ? graphHealth.data : null,
+        graphHealth: unwrapResult(graphHealth, "GraphService.computeHealth", ctx),
       };
     },
   };
