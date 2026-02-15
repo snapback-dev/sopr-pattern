@@ -1,0 +1,5 @@
+local.json
+state.bin
+*.enc
+sessions/
+integrations.enc

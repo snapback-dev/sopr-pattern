@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "pattern": "**/*.env*",
+      "level": "block",
+      "reason": "Environment files contain sensitive credentials",
+      "precedence": 100
+    },
+    {
+      "pattern": "package*.json",
+      "level": "warn",
+      "reason": "Package files affect dependencies",
+      "precedence": 50
+    },
+    {
+      "pattern": "**/migrations/*",
+      "level": "block",
+      "reason": "Database migrations are irreversible",
+      "precedence": 100
+    }
+  ],
+  "overrides": [],
+  "ignore": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "*.log"
+  ],
+  "settings": {
+    "defaultProtectionLevel": "watch",
+    "requireSnapshotMessage": true,
+    "maxSnapshots": 100,
+    "overrideExpirationWarningDays": 7
+  }
+}
