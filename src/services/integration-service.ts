@@ -85,6 +85,24 @@ function defaultGitRunner(timeoutMs: number): GitCommandRunner {
 // Implementation
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Security: Output Sanitization
+// ---------------------------------------------------------------------------
+
+/**
+ * Sanitize git output to prevent prompt injection via malicious
+ * commit messages or author names embedded in tool responses.
+ * Strips control characters (keeping \n, \r, \t) and truncates.
+ */
+function sanitizeGitOutput(value: string, maxLength = 500): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control char stripping for security
+  return value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").slice(0, maxLength);
+}
+
+// ---------------------------------------------------------------------------
+// Implementation
+// ---------------------------------------------------------------------------
+
 export class IntegrationServiceImpl implements IIntegrationService {
   private readonly config: IntegrationServiceConfig;
   private readonly gitRunner: GitCommandRunner;
@@ -117,13 +135,15 @@ export class IntegrationServiceImpl implements IIntegrationService {
       const uncommittedFiles = statusOutput
         .split("\n")
         .filter((line) => line.trim().length > 0)
-        .map((line) => line.slice(3).trim());
+        .map((line) => sanitizeGitOutput(line.slice(3).trim(), 300));
 
       const status: "clean" | "dirty" = uncommittedFiles.length === 0 ? "clean" : "dirty";
 
       // Get recent commits
+      // SECURITY: Use %x00 (null byte) as separator instead of | to prevent
+      // parsing errors from pipe characters in commit messages.
       const logOutput = await this.runGit(
-        ["log", `--max-count=${commitLimit}`, "--format=%H|%s|%an|%at"],
+        ["log", `--max-count=${commitLimit}`, "--format=%H%x00%s%x00%an%x00%at"],
         input.workspacePath,
       );
 
@@ -131,11 +151,11 @@ export class IntegrationServiceImpl implements IIntegrationService {
         .split("\n")
         .filter((line) => line.trim().length > 0)
         .map((line) => {
-          const parts = line.split("|");
+          const parts = line.split("\0");
           return {
             hash: parts[0] ?? "",
-            message: parts[1] ?? "",
-            author: parts[2] ?? "",
+            message: sanitizeGitOutput(parts[1] ?? ""),
+            author: sanitizeGitOutput(parts[2] ?? ""),
             timestamp: parseInt(parts[3] ?? "0", 10) * 1000, // Convert to ms
           };
         });

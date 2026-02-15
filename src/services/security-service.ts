@@ -193,6 +193,12 @@ export type FileReader = (filePath: string) => Promise<string>;
 // Implementation
 // ---------------------------------------------------------------------------
 
+/** Maximum file size (in bytes) to scan. Files larger than this are skipped. */
+const MAX_SCAN_FILE_SIZE = 1_000_000; // 1MB
+
+/** Maximum number of findings per scan to prevent memory exhaustion. */
+const MAX_FINDINGS = 500;
+
 export class SecurityServiceImpl implements ISecurityService {
   constructor(
     _config: SecurityServiceConfig,
@@ -211,10 +217,29 @@ export class SecurityServiceImpl implements ISecurityService {
       let scannedCount = 0;
 
       for (const filePath of filesToScan) {
+        if (findings.length >= MAX_FINDINGS) {
+          this.logger.warn("Findings limit reached, stopping scan", { max: MAX_FINDINGS });
+          break;
+        }
+
         try {
           const content = await this.readFile(filePath);
+
+          // SECURITY: Skip oversized files to prevent ReDoS and CPU exhaustion.
+          if (content.length > MAX_SCAN_FILE_SIZE) {
+            this.logger.warn("Skipping oversized file for security scan", {
+              file: filePath,
+              size: content.length,
+              max: MAX_SCAN_FILE_SIZE,
+            });
+            continue;
+          }
+
           const fileFindings = this.scanContent(content, filePath, activeRules);
-          findings.push(...fileFindings);
+
+          // Cap total findings
+          const remaining = MAX_FINDINGS - findings.length;
+          findings.push(...fileFindings.slice(0, remaining));
           scannedCount++;
         } catch (readErr) {
           this.logger.warn("Could not read file for security scan", {

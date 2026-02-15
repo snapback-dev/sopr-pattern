@@ -167,7 +167,9 @@ export class ValidationServiceImpl implements IValidationService {
       // Run linter (ESLint)
       const lintArgs = ["eslint", "--format", "json"];
       if (input.files && input.files.length > 0) {
-        lintArgs.push(...input.files);
+        // SECURITY: Use -- separator to prevent argument injection via filenames
+        // starting with dashes (e.g., --rulesdir=/tmp/malicious)
+        lintArgs.push("--", ...input.files);
       } else {
         lintArgs.push("src/");
       }

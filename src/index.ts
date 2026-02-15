@@ -15,6 +15,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { access, readdir, readFile } from "node:fs/promises";
+import * as path from "node:path";
 import { promisify } from "node:util";
 // Schemas
 import {
@@ -44,6 +45,7 @@ import { ConsoleLogger } from "./services/logger.js";
 import { SecurityServiceImpl } from "./services/security-service.js";
 import { SnapshotServiceImpl } from "./services/snapshot-service.js";
 import { ValidationServiceImpl } from "./services/validation-service.js";
+import { validateWorkspacePath, WorkspaceBoundary } from "./services/workspace-boundary.js";
 import { TelemetryTracker } from "./telemetry/tracker.js";
 import { createCacheHandlers } from "./tools/cache.js";
 import { createCheckHandlers } from "./tools/check.js";
@@ -58,7 +60,8 @@ import { createSnapHandlers } from "./tools/snap.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const workspacePath = process.cwd();
+const workspacePath = validateWorkspacePath(process.cwd());
+const boundary = new WorkspaceBoundary(workspacePath);
 const execFileAsync = promisify(execFile);
 
 /**
@@ -82,19 +85,40 @@ const storage = new InMemoryStorage();
 // 2. Layer 4 — Services (construct in dependency order)
 // ---------------------------------------------------------------------------
 
-const readFileAdapter = (filePath: string) => readFile(filePath, "utf-8");
-const listDirAdapter = (dir: string) =>
-  readdir(dir, { withFileTypes: true }).then((entries) =>
+// SECURITY: File adapters enforce workspace containment. All paths are
+// resolved against the workspace root before any I/O operation.
+
+const readFileAdapter = (filePath: string) => {
+  const resolved = path.isAbsolute(filePath) ? filePath : boundary.resolve(filePath);
+  if (!boundary.contains(resolved)) {
+    return Promise.reject(new Error(`Access denied: path outside workspace`));
+  }
+  return readFile(resolved, "utf-8");
+};
+
+const listDirAdapter = (dir: string) => {
+  const resolved = path.isAbsolute(dir) ? dir : boundary.resolve(dir);
+  if (!boundary.contains(resolved)) {
+    return Promise.reject(new Error(`Access denied: path outside workspace`));
+  }
+  return readdir(resolved, { withFileTypes: true }).then((entries) =>
     entries.map((e) => ({
       name: e.name,
       isDirectory: e.isDirectory(),
-      path: `${dir}/${e.name}`,
+      path: `${resolved}/${e.name}`,
     })),
   );
-const checkPathAdapter = (filePath: string) =>
-  access(filePath)
+};
+
+const checkPathAdapter = (filePath: string) => {
+  const resolved = path.isAbsolute(filePath) ? filePath : boundary.resolve(filePath);
+  if (!boundary.contains(resolved)) {
+    return Promise.resolve(false);
+  }
+  return access(resolved)
     .then(() => true)
     .catch(() => false);
+};
 
 const cacheService = new CacheServiceImpl({}, logger);
 const graphService = new GraphServiceImpl(

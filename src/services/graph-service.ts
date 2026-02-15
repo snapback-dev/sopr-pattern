@@ -295,6 +295,7 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent complexity from orphan detection + security bounds
   async detectOrphans(input: OrphanDetectionInput): Promise<ServiceResult<OrphanDetectionResult>> {
     try {
       const allFiles = await this.collectFiles(input.workspacePath);
@@ -426,6 +427,7 @@ export class GraphServiceImpl implements IGraphService {
     }
   }
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: inherent complexity from multi-metric health computation
   async computeHealth(input: GraphHealthInput): Promise<ServiceResult<GraphHealthResult>> {
     try {
       // Run circular dependency check
@@ -516,14 +518,32 @@ export class GraphServiceImpl implements IGraphService {
   // -------------------------------------------------------------------------
 
   private async collectFiles(rootPath: string): Promise<string[]> {
+    /** Maximum files to collect to prevent memory exhaustion. */
+    const MAX_FILES = 10_000;
+    /** Maximum directory depth to traverse. */
+    const MAX_DIR_DEPTH = 50;
+
     const files: string[] = [];
-    const stack: string[] = [rootPath];
+    const stack: Array<{ path: string; depth: number }> = [{ path: rootPath, depth: 0 }];
 
     while (stack.length > 0) {
-      const dirPath = stack.pop()!;
+      if (files.length >= MAX_FILES) {
+        this.logger.warn("File collection limit reached", { max: MAX_FILES });
+        break;
+      }
+
+      const current = stack.pop()!;
+
+      if (current.depth > MAX_DIR_DEPTH) {
+        this.logger.debug("Max directory depth reached", {
+          path: current.path,
+          max: MAX_DIR_DEPTH,
+        });
+        continue;
+      }
 
       try {
-        const entries = await this.listDirectory(dirPath);
+        const entries = await this.listDirectory(current.path);
 
         for (const entry of entries) {
           // Skip excluded directories
@@ -532,18 +552,19 @@ export class GraphServiceImpl implements IGraphService {
           }
 
           if (entry.isDirectory) {
-            stack.push(entry.path);
+            stack.push({ path: entry.path, depth: current.depth + 1 });
           } else {
             // Check if file has a valid extension
             const ext = this.getExtension(entry.name);
             if (ext && this.config.extensions.includes(ext)) {
               files.push(entry.path);
+              if (files.length >= MAX_FILES) break;
             }
           }
         }
       } catch {
         // Skip directories we cannot read
-        this.logger.debug("Could not read directory", { path: dirPath });
+        this.logger.debug("Could not read directory", { path: current.path });
       }
     }
 
@@ -763,8 +784,14 @@ export class GraphServiceImpl implements IGraphService {
       depths.set(root, 0);
     }
 
+    // SECURITY: Cap iterations to prevent infinite loops on cyclic graphs
+    // where re-enqueuing on longer paths could run indefinitely.
+    const MAX_BFS_ITERATIONS = 100_000;
+    let iterations = 0;
+
     const queue = [...roots];
-    while (queue.length > 0) {
+    while (queue.length > 0 && iterations < MAX_BFS_ITERATIONS) {
+      iterations++;
       const current = queue.shift()!;
       const currentDepth = depths.get(current) ?? 0;
 
