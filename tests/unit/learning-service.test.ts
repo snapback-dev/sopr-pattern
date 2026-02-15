@@ -541,38 +541,37 @@ describe("LearningServiceImpl", () => {
     it("sorts by access count descending, then by recency", async () => {
       const service = new LearningServiceImpl({}, storage, logger);
 
-      // Save two learnings with "test" in them at different times
-      await service.save({
+      // Save first learning
+      const saveResult1 = await service.save({
         workspacePath: WORKSPACE,
         trigger: "test popular",
         action: "action A",
         type: "pattern",
       });
+      expect(saveResult1.ok).toBe(true);
+      if (!saveResult1.ok) return;
+      const id1 = saveResult1.data.id;
 
       vi.advanceTimersByTime(1000);
 
-      await service.save({
+      // Save second learning
+      const saveResult2 = await service.save({
         workspacePath: WORKSPACE,
         trigger: "test unpopular",
         action: "action B",
         type: "pattern",
       });
+      expect(saveResult2.ok).toBe(true);
+      if (!saveResult2.ok) return;
 
-      // Load tiered with limit=1 and intent targeting "popular" to only
-      // increment the access count of the first learning.
-      // The intent "popular" matches the trigger "test popular", giving it
-      // a higher relevance score so it is the one selected within limit=1.
-      await service.loadTiered({
-        workspacePath: WORKSPACE,
-        intent: "popular",
-        limit: 1,
-      });
-      // Call again to get accessCount to 2 for the popular one
-      await service.loadTiered({
-        workspacePath: WORKSPACE,
-        intent: "popular",
-        limit: 1,
-      });
+      // Manually increment accessCount for the first learning by loading then updating storage
+      const learning1Data = await storage.read(`learning:${id1}`);
+      expect(learning1Data).not.toBeNull();
+      if (learning1Data) {
+        const learning1 = JSON.parse(learning1Data) as Learning;
+        const updated = { ...learning1, accessCount: 2 };
+        await storage.write(`learning:${id1}`, JSON.stringify(updated));
+      }
 
       const result = await service.search({
         workspacePath: WORKSPACE,
@@ -584,8 +583,8 @@ describe("LearningServiceImpl", () => {
         expect(result.data.learnings).toHaveLength(2);
         // "test popular" has accessCount=2, "test unpopular" has accessCount=0
         // so "test popular" should be first
-        expect(result.data.learnings[0]?.trigger).toContain("popular");
-        expect(result.data.learnings[1]?.trigger).toContain("unpopular");
+        expect(result.data.learnings[0]?.trigger).toBe("test popular");
+        expect(result.data.learnings[1]?.trigger).toBe("test unpopular");
       }
     });
 
