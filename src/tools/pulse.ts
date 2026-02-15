@@ -72,7 +72,11 @@ export function createPulseHandlers(deps: PulseDeps) {
           "ValidationService.computeHealthScore",
           ctx,
         ),
-        integrationHealth,
+        integrationHealth: unwrapResult(
+          integrationHealth,
+          "IntegrationService.checkHealth",
+          ctx,
+        ),
         graphHealth: unwrapResult(graphHealth, "GraphService.computeHealth", ctx),
       };
     },
