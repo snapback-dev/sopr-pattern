@@ -147,6 +147,23 @@ export class ValidationServiceImpl implements IValidationService {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
+  /**
+   * Strip absolute workspace prefix from diagnostic file paths to prevent
+   * leaking the server's directory structure in tool responses.
+   */
+  private sanitizeDiagnosticPaths(diagnostics: Diagnostic[], workspacePath: string): Diagnostic[] {
+    const prefix = workspacePath.endsWith("/") ? workspacePath : `${workspacePath}/`;
+    return diagnostics.map((d) => {
+      if (!d.file) return d;
+      const sanitized = d.file.startsWith(prefix)
+        ? d.file.slice(prefix.length)
+        : d.file.startsWith(workspacePath)
+          ? d.file.slice(workspacePath.length)
+          : d.file;
+      return { ...d, file: sanitized };
+    });
+  }
+
   async quickCheck(input: ValidationInput): Promise<ServiceResult<ValidationResult>> {
     const startTime = Date.now();
 
@@ -198,7 +215,7 @@ export class ValidationServiceImpl implements IValidationService {
         ok: true,
         data: {
           passed: errorCount === 0,
-          diagnostics,
+          diagnostics: this.sanitizeDiagnosticPaths(diagnostics, input.workspacePath),
           errorCount,
           warningCount,
           duration,
@@ -280,7 +297,7 @@ export class ValidationServiceImpl implements IValidationService {
         ok: true,
         data: {
           passed: errorCount === 0,
-          diagnostics,
+          diagnostics: this.sanitizeDiagnosticPaths(diagnostics, input.workspacePath),
           errorCount,
           warningCount,
           duration,
@@ -370,7 +387,7 @@ export class ValidationServiceImpl implements IValidationService {
         ok: true,
         data: {
           success: result.exitCode === 0,
-          diagnostics,
+          diagnostics: this.sanitizeDiagnosticPaths(diagnostics, input.workspacePath),
           duration,
         },
       };
