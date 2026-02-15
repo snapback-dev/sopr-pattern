@@ -33,6 +33,9 @@ export interface DaemonClientConfig {
   readonly callTimeoutMs: number;
 }
 
+/** Maximum response body size from daemon (10 MB). */
+const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+
 const DEFAULT_CONFIG: Omit<DaemonClientConfig, "workspaceRoot"> = {
   baseUrl: "http://127.0.0.1:4200",
   healthTimeoutMs: 500,
@@ -62,7 +65,12 @@ export async function checkDaemonHealth(
       return { available: false };
     }
 
-    const body = (await response.json()) as Record<string, unknown>;
+    const text = await response.text();
+    if (text.length > MAX_RESPONSE_BYTES) {
+      return { available: false };
+    }
+
+    const body = JSON.parse(text) as Record<string, unknown>;
 
     return {
       available: true,
@@ -117,6 +125,19 @@ export class DaemonClient {
       throw new Error(`Daemon returned ${response.status} for ${toolName}: ${text}`);
     }
 
-    return response.json();
+    // SECURITY: Enforce response size limit to prevent memory exhaustion
+    // from a compromised or malicious daemon.
+    const text = await response.text();
+    if (text.length > MAX_RESPONSE_BYTES) {
+      throw new Error(
+        `Daemon response for ${toolName} exceeds ${MAX_RESPONSE_BYTES} bytes (got ${text.length})`,
+      );
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Daemon returned invalid JSON for ${toolName}`);
+    }
   }
 }

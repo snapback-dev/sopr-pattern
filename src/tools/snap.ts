@@ -200,10 +200,15 @@ export function createSnapHandlers(deps: SnapDeps) {
       // Build the context masking instruction for the LLM.
       // This tells the AI assistant to disregard stale context
       // from previous turns that referenced now-reverted changes.
+      //
+      // SECURITY: Sanitize file paths before embedding in agent instruction
+      // to prevent prompt injection via crafted filenames.
+      const sanitizedFiles = affectedFiles.map((f) => f.replace(/[^\w./-]/g, "_").slice(0, 200));
+
       const agentInstruction = [
         `⚠️ STATE RESET: Reverted to snapshot ${snapshotId ?? "baseline"}.`,
-        affectedFiles.length > 0
-          ? `DISREGARD all prior context for: ${affectedFiles.join(", ")}.`
+        sanitizedFiles.length > 0
+          ? `DISREGARD all prior context for: ${sanitizedFiles.join(", ")}.`
           : "DISREGARD all prior file context from this session.",
         "Re-read current file state before continuing.",
       ].join(" ");
