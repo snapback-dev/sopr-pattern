@@ -33,17 +33,17 @@ const FORBIDDEN_ROOTS: readonly string[] = ["/", "/etc", "/root", "/var", "/usr"
  * @throws {Error} If the path is not absolute or targets a system directory.
  */
 export function validateWorkspacePath(candidate: string): string {
-  const resolved = resolve(candidate);
+	const resolved = resolve(candidate);
 
-  if (resolved !== candidate && !candidate.startsWith("/") && !candidate.startsWith("\\")) {
-    throw new Error(`Workspace path must be absolute: ${candidate}`);
-  }
+	if (resolved !== candidate && !candidate.startsWith("/") && !candidate.startsWith("\\")) {
+		throw new Error(`Workspace path must be absolute: ${candidate}`);
+	}
 
-  if (FORBIDDEN_ROOTS.includes(resolved)) {
-    throw new Error(`Workspace path must not be a system directory: ${resolved}`);
-  }
+	if (FORBIDDEN_ROOTS.includes(resolved)) {
+		throw new Error(`Workspace path must not be a system directory: ${resolved}`);
+	}
 
-  return resolved;
+	return resolved;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,107 +58,107 @@ export function validateWorkspacePath(candidate: string): string {
  * platform-aware separators.
  */
 export class WorkspaceBoundary {
-  /** Resolved absolute workspace root (always ends without a trailing separator). */
-  private readonly root: string;
+	/** Resolved absolute workspace root (always ends without a trailing separator). */
+	private readonly root: string;
 
-  /**
-   * @param workspacePath - Absolute path to the workspace root directory.
-   */
-  constructor(workspacePath: string) {
-    this.root = resolve(workspacePath);
-  }
+	/**
+	 * @param workspacePath - Absolute path to the workspace root directory.
+	 */
+	constructor(workspacePath: string) {
+		this.root = resolve(workspacePath);
+	}
 
-  // -------------------------------------------------------------------------
-  // Public API
-  // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Public API
+	// -------------------------------------------------------------------------
 
-  /**
-   * Resolve a relative path against the workspace root and verify containment.
-   *
-   * @param relativePath - Path relative to the workspace root.
-   * @returns The resolved absolute path.
-   * @throws {Error} If the path escapes the workspace or is otherwise invalid.
-   */
-  resolve(relativePath: string): string {
-    this.assertSafe(relativePath);
+	/**
+	 * Resolve a relative path against the workspace root and verify containment.
+	 *
+	 * @param relativePath - Path relative to the workspace root.
+	 * @returns The resolved absolute path.
+	 * @throws {Error} If the path escapes the workspace or is otherwise invalid.
+	 */
+	resolve(relativePath: string): string {
+		this.assertSafe(relativePath);
 
-    const resolved = resolve(this.root, relativePath);
+		const resolved = resolve(this.root, relativePath);
 
-    if (!this.isWithin(resolved)) {
-      throw new Error(`Path escapes workspace boundary: ${relativePath}`);
-    }
+		if (!this.isWithin(resolved)) {
+			throw new Error(`Path escapes workspace boundary: ${relativePath}`);
+		}
 
-    return resolved;
-  }
+		return resolved;
+	}
 
-  /**
-   * Resolve an array of relative paths, validating each one.
-   *
-   * @param paths - Relative paths to resolve.
-   * @returns Array of resolved absolute paths.
-   * @throws {Error} If any path escapes the workspace or is invalid.
-   */
-  resolveMany(paths: readonly string[]): string[] {
-    return paths.map((p) => this.resolve(p));
-  }
+	/**
+	 * Resolve an array of relative paths, validating each one.
+	 *
+	 * @param paths - Relative paths to resolve.
+	 * @returns Array of resolved absolute paths.
+	 * @throws {Error} If any path escapes the workspace or is invalid.
+	 */
+	resolveMany(paths: readonly string[]): string[] {
+		return paths.map((p) => this.resolve(p));
+	}
 
-  /**
-   * Check whether an absolute path falls within the workspace root.
-   *
-   * @param absolutePath - The absolute path to test.
-   * @returns `true` if the path is inside (or equal to) the workspace root.
-   */
-  contains(absolutePath: string): boolean {
-    try {
-      this.assertSafe(absolutePath);
-    } catch {
-      return false;
-    }
+	/**
+	 * Check whether an absolute path falls within the workspace root.
+	 *
+	 * @param absolutePath - The absolute path to test.
+	 * @returns `true` if the path is inside (or equal to) the workspace root.
+	 */
+	contains(absolutePath: string): boolean {
+		try {
+			this.assertSafe(absolutePath);
+		} catch {
+			return false;
+		}
 
-    const normalised = resolve(absolutePath);
-    return this.isWithin(normalised);
-  }
+		const normalised = resolve(absolutePath);
+		return this.isWithin(normalised);
+	}
 
-  /**
-   * Non-throwing check for a relative path.
-   *
-   * @param path - A relative path to validate.
-   * @returns `true` if `resolve(path)` would succeed without throwing.
-   */
-  isValidRelative(path: string): boolean {
-    try {
-      this.resolve(path);
-      return true;
-    } catch {
-      return false;
-    }
-  }
+	/**
+	 * Non-throwing check for a relative path.
+	 *
+	 * @param path - A relative path to validate.
+	 * @returns `true` if `resolve(path)` would succeed without throwing.
+	 */
+	isValidRelative(path: string): boolean {
+		try {
+			this.resolve(path);
+			return true;
+		} catch {
+			return false;
+		}
+	}
 
-  // -------------------------------------------------------------------------
-  // Private helpers
-  // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Private helpers
+	// -------------------------------------------------------------------------
 
-  /**
-   * Reject obviously malicious path inputs before any resolution takes place.
-   *
-   * @param candidate - Raw path string to validate.
-   * @throws {Error} On null bytes or leading dashes.
-   */
-  private assertSafe(candidate: string): void {
-    if (candidate.includes("\0")) {
-      throw new Error("Path must not contain null bytes");
-    }
+	/**
+	 * Reject obviously malicious path inputs before any resolution takes place.
+	 *
+	 * @param candidate - Raw path string to validate.
+	 * @throws {Error} On null bytes or leading dashes.
+	 */
+	private assertSafe(candidate: string): void {
+		if (candidate.includes("\0")) {
+			throw new Error("Path must not contain null bytes");
+		}
 
-    if (candidate.startsWith("-")) {
-      throw new Error("Path must not start with a dash (argument injection prevention)");
-    }
-  }
+		if (candidate.startsWith("-")) {
+			throw new Error("Path must not start with a dash (argument injection prevention)");
+		}
+	}
 
-  /**
-   * Check whether a normalised absolute path is within the workspace root.
-   * A path is "within" if it equals the root or starts with root + separator.
-   */
-  private isWithin(normalised: string): boolean {
-    return normalised === this.root || normalised.startsWith(this.root + sep);
-  }
+	/**
+	 * Check whether a normalised absolute path is within the workspace root.
+	 * A path is "within" if it equals the root or starts with root + separator.
+	 */
+	private isWithin(normalised: string): boolean {
+		return normalised === this.root || normalised.startsWith(this.root + sep);
+	}
 }

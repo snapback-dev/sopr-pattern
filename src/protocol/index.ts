@@ -4,16 +4,16 @@
  * @module protocol
  */
 
-export { ProtocolServer } from "./server.js";
+export { type HttpTransportOptions, ProtocolServer } from "./server.js";
 export type {
-  CallToolResult,
-  ProtocolConfig,
-  TextContent,
+	CallToolResult,
+	ProtocolConfig,
+	TextContent,
 } from "./types.js";
 export {
-  HandlerExecutionError,
-  InvalidInputError,
-  ModeNotFoundError,
-  ProtocolError,
-  ToolNotFoundError,
+	HandlerExecutionError,
+	InvalidInputError,
+	ModeNotFoundError,
+	ProtocolError,
+	ToolNotFoundError,
 } from "./types.js";

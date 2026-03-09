@@ -37,18 +37,18 @@ const MAX_FUNCTION_BODY_LINES = 50;
 // ---------------------------------------------------------------------------
 
 interface ExtractedFunction {
-  /** The function/method name. */
-  name: string;
-  /** The file containing this function. */
-  file: string;
-  /** 1-based start line of the function declaration. */
-  startLine: number;
-  /** 1-based end line of the closing brace. */
-  endLine: number;
-  /** Number of lines in the function body (excluding declaration and closing brace). */
-  bodyLines: number;
-  /** Whether the function is exported. */
-  exported: boolean;
+	/** The function/method name. */
+	name: string;
+	/** The file containing this function. */
+	file: string;
+	/** 1-based start line of the function declaration. */
+	startLine: number;
+	/** 1-based end line of the closing brace. */
+	endLine: number;
+	/** Number of lines in the function body (excluding declaration and closing brace). */
+	bodyLines: number;
+	/** Whether the function is exported. */
+	exported: boolean;
 }
 
 /**
@@ -66,76 +66,78 @@ interface ExtractedFunction {
  * the SOPR tools layer uses standalone exported handler functions.
  */
 function extractExportedFunctions(filePath: string): ExtractedFunction[] {
-  const content = fs.readFileSync(filePath, "utf-8");
-  const lines = content.split("\n");
-  const results: ExtractedFunction[] = [];
+	const content = fs.readFileSync(filePath, "utf-8");
+	const lines = content.split("\n");
+	const results: ExtractedFunction[] = [];
 
-  // Pattern for lines that start an exported function definition
-  const exportFuncPattern = /^export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)/;
-  const exportConstArrowPattern = /^export\s+const\s+(\w+)\s*=\s*(?:async\s*)?\(/;
+	// Pattern for lines that start an exported function definition
+	const exportFuncPattern = /^export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)/;
+	const exportConstArrowPattern = /^export\s+const\s+(\w+)\s*=\s*(?:async\s*)?\(/;
 
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i]?.trimStart();
-    let funcName: string | null = null;
+	for (let i = 0; i < lines.length; i++) {
+		const trimmed = lines[i]?.trimStart();
+		let funcName: string | null = null;
 
-    const funcMatch = exportFuncPattern.exec(trimmed);
-    if (funcMatch?.[1]) {
-      funcName = funcMatch[1];
-    }
+		const funcMatch = exportFuncPattern.exec(trimmed);
+		if (funcMatch?.[1]) {
+			funcName = funcMatch[1];
+		}
 
-    if (funcName === null) {
-      const arrowMatch = exportConstArrowPattern.exec(trimmed);
-      if (arrowMatch?.[1]) {
-        funcName = arrowMatch[1];
-      }
-    }
+		if (funcName === null) {
+			const arrowMatch = exportConstArrowPattern.exec(trimmed);
+			if (arrowMatch?.[1]) {
+				funcName = arrowMatch[1];
+			}
+		}
 
-    if (funcName === null) continue;
+		if (funcName === null) {
+			continue;
+		}
 
-    // Find the opening brace on this line or subsequent lines
-    let braceDepth = 0;
-    let foundOpenBrace = false;
-    let bodyStart = i;
-    let bodyEnd = i;
+		// Find the opening brace on this line or subsequent lines
+		let braceDepth = 0;
+		let foundOpenBrace = false;
+		let bodyStart = i;
+		let bodyEnd = i;
 
-    for (let j = i; j < lines.length; j++) {
-      const line = lines[j]!;
+		for (let j = i; j < lines.length; j++) {
+			const line = lines[j]!;
 
-      for (const ch of line) {
-        if (ch === "{") {
-          if (!foundOpenBrace) {
-            foundOpenBrace = true;
-            bodyStart = j;
-          }
-          braceDepth++;
-        } else if (ch === "}") {
-          braceDepth--;
-        }
-      }
+			for (const ch of line) {
+				if (ch === "{") {
+					if (!foundOpenBrace) {
+						foundOpenBrace = true;
+						bodyStart = j;
+					}
+					braceDepth++;
+				} else if (ch === "}") {
+					braceDepth--;
+				}
+			}
 
-      if (foundOpenBrace && braceDepth === 0) {
-        bodyEnd = j;
-        break;
-      }
-    }
+			if (foundOpenBrace && braceDepth === 0) {
+				bodyEnd = j;
+				break;
+			}
+		}
 
-    if (foundOpenBrace) {
-      // Body lines = total lines between open brace and close brace,
-      // excluding the declaration line and the closing brace line itself.
-      const bodyLineCount = Math.max(0, bodyEnd - bodyStart - 1);
+		if (foundOpenBrace) {
+			// Body lines = total lines between open brace and close brace,
+			// excluding the declaration line and the closing brace line itself.
+			const bodyLineCount = Math.max(0, bodyEnd - bodyStart - 1);
 
-      results.push({
-        name: funcName,
-        file: path.relative(SRC_ROOT, filePath),
-        startLine: i + 1,
-        endLine: bodyEnd + 1,
-        bodyLines: bodyLineCount,
-        exported: true,
-      });
-    }
-  }
+			results.push({
+				name: funcName,
+				file: path.relative(SRC_ROOT, filePath),
+				startLine: i + 1,
+				endLine: bodyEnd + 1,
+				bodyLines: bodyLineCount,
+				exported: true,
+			});
+		}
+	}
 
-  return results;
+	return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,10 +145,10 @@ function extractExportedFunctions(filePath: string): ExtractedFunction[] {
 // ---------------------------------------------------------------------------
 
 interface BusinessLogicIndicator {
-  file: string;
-  line: number;
-  indicator: string;
-  rawLine: string;
+	file: string;
+	line: number;
+	indicator: string;
+	rawLine: string;
 }
 
 /**
@@ -165,39 +167,38 @@ interface BusinessLogicIndicator {
  *   - Direct HTTP/network calls (fetch, axios, http.request, etc.)
  */
 const BUSINESS_LOGIC_PATTERNS: Array<{
-  pattern: RegExp;
-  label: string;
+	pattern: RegExp;
+	label: string;
 }> = [
-  // File system operations
-  {
-    pattern: /\bfs\.(readFile|writeFile|readdir|mkdir|unlink|stat|access|rename|copyFile)\b/,
-    label: "Direct filesystem operation (should be in a service)",
-  },
-  {
-    pattern: /\bfs\.(readFileSync|writeFileSync|readdirSync|mkdirSync|unlinkSync|statSync)\b/,
-    label: "Synchronous filesystem operation (should be in a service)",
-  },
-  // Child process
-  {
-    pattern: /\b(exec|execSync|spawn|spawnSync|execFile|fork)\s*\(/,
-    label: "Direct process execution (should be in a service)",
-  },
-  // Database operations (common ORMs and drivers)
-  {
-    pattern:
-      /\.(query|execute|findOne|findMany|insertOne|insertMany|updateOne|deleteOne|aggregate)\s*\(/,
-    label: "Direct database operation (should be in a service)",
-  },
-  // Direct HTTP calls
-  {
-    pattern: /\b(fetch|axios\.get|axios\.post|http\.request|https\.request)\s*\(/,
-    label: "Direct HTTP/network call (should be in a service)",
-  },
-  // SQL literals
-  {
-    pattern: /\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|ALTER TABLE)\s+/,
-    label: "Embedded SQL (should be in a service/repository)",
-  },
+	// File system operations
+	{
+		pattern: /\bfs\.(readFile|writeFile|readdir|mkdir|unlink|stat|access|rename|copyFile)\b/,
+		label: "Direct filesystem operation (should be in a service)",
+	},
+	{
+		pattern: /\bfs\.(readFileSync|writeFileSync|readdirSync|mkdirSync|unlinkSync|statSync)\b/,
+		label: "Synchronous filesystem operation (should be in a service)",
+	},
+	// Child process
+	{
+		pattern: /\b(exec|execSync|spawn|spawnSync|execFile|fork)\s*\(/,
+		label: "Direct process execution (should be in a service)",
+	},
+	// Database operations (common ORMs and drivers)
+	{
+		pattern: /\.(query|execute|findOne|findMany|insertOne|insertMany|updateOne|deleteOne|aggregate)\s*\(/,
+		label: "Direct database operation (should be in a service)",
+	},
+	// Direct HTTP calls
+	{
+		pattern: /\b(fetch|axios\.get|axios\.post|http\.request|https\.request)\s*\(/,
+		label: "Direct HTTP/network call (should be in a service)",
+	},
+	// SQL literals
+	{
+		pattern: /\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|ALTER TABLE)\s+/,
+		label: "Embedded SQL (should be in a service/repository)",
+	},
 ];
 
 /**
@@ -205,36 +206,36 @@ const BUSINESS_LOGIC_PATTERNS: Array<{
  * into the orchestration layer.
  */
 function detectBusinessLogicInTools(toolsDir: string): BusinessLogicIndicator[] {
-  const indicators: BusinessLogicIndicator[] = [];
-  const files = collectTsFiles(toolsDir);
+	const indicators: BusinessLogicIndicator[] = [];
+	const files = collectTsFiles(toolsDir);
 
-  for (const filePath of files) {
-    const content = fs.readFileSync(filePath, "utf-8");
-    const lines = content.split("\n");
+	for (const filePath of files) {
+		const content = fs.readFileSync(filePath, "utf-8");
+		const lines = content.split("\n");
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]!;
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i]!;
 
-      // Skip comments
-      const trimmed = line.trimStart();
-      if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
-        continue;
-      }
+			// Skip comments
+			const trimmed = line.trimStart();
+			if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
+				continue;
+			}
 
-      for (const { pattern, label } of BUSINESS_LOGIC_PATTERNS) {
-        if (pattern.test(line)) {
-          indicators.push({
-            file: path.relative(SRC_ROOT, filePath),
-            line: i + 1,
-            indicator: label,
-            rawLine: line.trimEnd(),
-          });
-        }
-      }
-    }
-  }
+			for (const { pattern, label } of BUSINESS_LOGIC_PATTERNS) {
+				if (pattern.test(line)) {
+					indicators.push({
+						file: path.relative(SRC_ROOT, filePath),
+						line: i + 1,
+						indicator: label,
+						rawLine: line.trimEnd(),
+					});
+				}
+			}
+		}
+	}
 
-  return indicators;
+	return indicators;
 }
 
 // ---------------------------------------------------------------------------
@@ -242,91 +243,91 @@ function detectBusinessLogicInTools(toolsDir: string): BusinessLogicIndicator[] 
 // ---------------------------------------------------------------------------
 
 describe("Tool Handler Complexity Gate", () => {
-  it(`no exported function in tools/ exceeds ${MAX_FUNCTION_BODY_LINES} lines`, () => {
-    const files = collectTsFiles(TOOLS_DIR);
-    const oversizedFunctions: ExtractedFunction[] = [];
+	it(`no exported function in tools/ exceeds ${MAX_FUNCTION_BODY_LINES} lines`, () => {
+		const files = collectTsFiles(TOOLS_DIR);
+		const oversizedFunctions: ExtractedFunction[] = [];
 
-    for (const filePath of files) {
-      const functions = extractExportedFunctions(filePath);
-      for (const fn of functions) {
-        // Skip factory functions (create*Handlers) — these are structural
-        // wrappers containing multiple small mode handlers, not individual
-        // handler functions. Individual handler complexity is enforced by
-        // the mode handler size within the returned object.
-        if (/^create\w+Handlers$/.test(fn.name)) continue;
+		for (const filePath of files) {
+			const functions = extractExportedFunctions(filePath);
+			for (const fn of functions) {
+				// Skip factory functions (create*Handlers) — these are structural
+				// wrappers containing multiple small mode handlers, not individual
+				// handler functions. Individual handler complexity is enforced by
+				// the mode handler size within the returned object.
+				if (/^create\w+Handlers$/.test(fn.name)) {
+					continue;
+				}
 
-        if (fn.bodyLines > MAX_FUNCTION_BODY_LINES) {
-          oversizedFunctions.push(fn);
-        }
-      }
-    }
+				if (fn.bodyLines > MAX_FUNCTION_BODY_LINES) {
+					oversizedFunctions.push(fn);
+				}
+			}
+		}
 
-    const report = oversizedFunctions
-      .map(
-        (fn) =>
-          `  ${fn.file}:${fn.startLine} -- ${fn.name}() has ${fn.bodyLines} body lines (max: ${MAX_FUNCTION_BODY_LINES})`,
-      )
-      .join("\n");
+		const report = oversizedFunctions
+			.map(
+				(fn) =>
+					`  ${fn.file}:${fn.startLine} -- ${fn.name}() has ${fn.bodyLines} body lines (max: ${MAX_FUNCTION_BODY_LINES})`,
+			)
+			.join("\n");
 
-    expect(
-      oversizedFunctions,
-      `Tool handlers exceeding ${MAX_FUNCTION_BODY_LINES} lines should be refactored into service calls:\n${report}`,
-    ).toHaveLength(0);
-  });
+		expect(
+			oversizedFunctions,
+			`Tool handlers exceeding ${MAX_FUNCTION_BODY_LINES} lines should be refactored into service calls:\n${report}`,
+		).toHaveLength(0);
+	});
 
-  it("tool handlers do not contain business logic indicators", () => {
-    const indicators = detectBusinessLogicInTools(TOOLS_DIR);
+	it("tool handlers do not contain business logic indicators", () => {
+		const indicators = detectBusinessLogicInTools(TOOLS_DIR);
 
-    const report = indicators
-      .map((ind) => `  ${ind.file}:${ind.line} -- ${ind.indicator}\n    ${ind.rawLine}`)
-      .join("\n\n");
+		const report = indicators
+			.map((ind) => `  ${ind.file}:${ind.line} -- ${ind.indicator}\n    ${ind.rawLine}`)
+			.join("\n\n");
 
-    expect(
-      indicators,
-      `Business logic detected in tools layer (should be in services):\n${report}`,
-    ).toHaveLength(0);
-  });
+		expect(indicators, `Business logic detected in tools layer (should be in services):\n${report}`).toHaveLength(
+			0,
+		);
+	});
 
-  it("tool files import from services (confirms delegation pattern)", () => {
-    const files = collectTsFiles(TOOLS_DIR);
+	it("tool files import from services (confirms delegation pattern)", () => {
+		const files = collectTsFiles(TOOLS_DIR);
 
-    // This is a structural assertion: if tool files exist, they should
-    // import from the services layer (proving they delegate rather than
-    // implementing logic inline). Skip if no tool files exist yet.
-    if (files.length === 0) {
-      return; // No tools yet -- nothing to validate
-    }
+		// This is a structural assertion: if tool files exist, they should
+		// import from the services layer (proving they delegate rather than
+		// implementing logic inline). Skip if no tool files exist yet.
+		if (files.length === 0) {
+			return; // No tools yet -- nothing to validate
+		}
 
-    const filesWithServiceImports: string[] = [];
-    const filesWithoutServiceImports: string[] = [];
+		const filesWithServiceImports: string[] = [];
+		const filesWithoutServiceImports: string[] = [];
 
-    for (const filePath of files) {
-      const content = fs.readFileSync(filePath, "utf-8");
-      // Check for imports from services layer
-      const hasServiceImport =
-        content.includes("from") &&
-        (content.includes("/services/") || content.includes("../services"));
+		for (const filePath of files) {
+			const content = fs.readFileSync(filePath, "utf-8");
+			// Check for imports from services layer
+			const hasServiceImport =
+				content.includes("from") && (content.includes("/services/") || content.includes("../services"));
 
-      // Only flag handler files (not index/barrel files)
-      const basename = path.basename(filePath, ".ts");
-      const isHandlerFile =
-        basename.startsWith("handle") || basename.includes("handler") || basename.includes("tool");
+			// Only flag handler files (not index/barrel files)
+			const basename = path.basename(filePath, ".ts");
+			const isHandlerFile =
+				basename.startsWith("handle") || basename.includes("handler") || basename.includes("tool");
 
-      if (isHandlerFile) {
-        if (hasServiceImport) {
-          filesWithServiceImports.push(path.relative(SRC_ROOT, filePath));
-        } else {
-          filesWithoutServiceImports.push(path.relative(SRC_ROOT, filePath));
-        }
-      }
-    }
+			if (isHandlerFile) {
+				if (hasServiceImport) {
+					filesWithServiceImports.push(path.relative(SRC_ROOT, filePath));
+				} else {
+					filesWithoutServiceImports.push(path.relative(SRC_ROOT, filePath));
+				}
+			}
+		}
 
-    // If we have handler files, at least some should import services
-    if (filesWithServiceImports.length + filesWithoutServiceImports.length > 0) {
-      expect(
-        filesWithServiceImports.length,
-        `Tool handler files not importing from services/ (may contain inline logic):\n  ${filesWithoutServiceImports.join("\n  ")}`,
-      ).toBeGreaterThan(0);
-    }
-  });
+		// If we have handler files, at least some should import services
+		if (filesWithServiceImports.length + filesWithoutServiceImports.length > 0) {
+			expect(
+				filesWithServiceImports.length,
+				`Tool handler files not importing from services/ (may contain inline logic):\n  ${filesWithoutServiceImports.join("\n  ")}`,
+			).toBeGreaterThan(0);
+		}
+	});
 });

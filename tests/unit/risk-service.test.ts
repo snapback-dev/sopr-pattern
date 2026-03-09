@@ -14,100 +14,100 @@ import { RiskServiceImpl } from "../../src/services/risk-service.js";
 import { createMockLogger } from "../helpers/index.js";
 
 describe("RiskServiceImpl (free tier stub)", () => {
-  it("returns low risk for 0 files", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("returns low risk for 0 files", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: [],
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: [],
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.score).toBe(0);
-      expect(result.data.level).toBe("low");
-      expect(result.data.upgradeAvailable).toBe(true);
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.score).toBe(0);
+			expect(result.data.level).toBe("low");
+			expect(result.data.upgradeAvailable).toBe(true);
+		}
+	});
 
-  it("returns low risk for 1-3 files", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("returns low risk for 1-3 files", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: ["a.ts", "b.ts"],
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: ["a.ts", "b.ts"],
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.score).toBe(20);
-      expect(result.data.level).toBe("low");
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.score).toBe(20);
+			expect(result.data.level).toBe("low");
+		}
+	});
 
-  it("returns medium risk for 4-10 files", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("returns medium risk for 4-10 files", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: Array.from({ length: 7 }, (_, i) => `file${i}.ts`),
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: Array.from({ length: 7 }, (_, i) => `file${i}.ts`),
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.score).toBe(45);
-      expect(result.data.level).toBe("medium");
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.score).toBe(45);
+			expect(result.data.level).toBe("medium");
+		}
+	});
 
-  it("returns high risk for >10 files", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("returns high risk for >10 files", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: Array.from({ length: 15 }, (_, i) => `file${i}.ts`),
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: Array.from({ length: 15 }, (_, i) => `file${i}.ts`),
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.score).toBe(65);
-      expect(result.data.level).toBe("high");
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.score).toBe(65);
+			expect(result.data.level).toBe("high");
+		}
+	});
 
-  it("always includes pro features list", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("always includes pro features list", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: ["test.ts"],
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: ["test.ts"],
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.proFeatures).toBeDefined();
-      expect(result.data.proFeatures?.length).toBeGreaterThan(0);
-      expect(result.data.proFeatures).toContain("DBSCAN session clustering");
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.proFeatures).toBeDefined();
+			expect(result.data.proFeatures?.length).toBeGreaterThan(0);
+			expect(result.data.proFeatures).toContain("DBSCAN session clustering");
+		}
+	});
 
-  it("indicates upgrade is available in message", async () => {
-    const logger = createMockLogger();
-    const service = new RiskServiceImpl(logger);
+	it("indicates upgrade is available in message", async () => {
+		const logger = createMockLogger();
+		const service = new RiskServiceImpl(logger);
 
-    const result = await service.analyze({
-      workspacePath: "/test",
-      files: ["a.ts"],
-    });
+		const result = await service.analyze({
+			workspacePath: "/test",
+			files: ["a.ts"],
+		});
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.message).toContain("Pro tier");
-    }
-  });
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.message).toContain("Pro tier");
+		}
+	});
 });

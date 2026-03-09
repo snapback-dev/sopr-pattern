@@ -13,11 +13,11 @@
 
 // Circuit breaker
 export {
-  type BreakerRegistry,
-  type CircuitBreakerConfig,
-  type CircuitState,
-  type CircuitStateInfo,
-  createBreakerRegistry,
+	type BreakerRegistry,
+	type CircuitBreakerConfig,
+	type CircuitState,
+	type CircuitStateInfo,
+	createBreakerRegistry,
 } from "./circuit-breaker.js";
 // Composer
 export { type ResilienceConfig, withResilience } from "./compose.js";
@@ -27,10 +27,10 @@ export { type ConcurrencyConfig, ConcurrencyLimiter } from "./concurrency-limite
 
 // Graceful degradation & logging
 export {
-  ConsoleLogger,
-  type GracefulDegradationOptions,
-  type Logger,
-  withGracefulDegradation,
+	ConsoleLogger,
+	type GracefulDegradationOptions,
+	type Logger,
+	withGracefulDegradation,
 } from "./graceful.js";
 // Retry
 export { type RetryConfig, withRetry } from "./retry.js";

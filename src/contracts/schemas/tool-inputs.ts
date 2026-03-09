@@ -41,12 +41,12 @@ const MAX_DEPTH = 20;
  *   - Null bytes (C-string truncation attacks)
  */
 export const SafePathSchema = z
-  .string()
-  .min(1)
-  .max(MAX_PATH_LENGTH)
-  .refine((p) => !p.includes("\0"), "Path must not contain null bytes")
-  .refine((p) => !p.startsWith("/") && !p.startsWith("\\"), "Absolute paths are not allowed")
-  .refine((p) => !/(^|[\\/])\.\.($|[\\/])/.test(p), "Path traversal (../) is not allowed");
+	.string()
+	.min(1)
+	.max(MAX_PATH_LENGTH)
+	.refine((p) => !p.includes("\0"), "Path must not contain null bytes")
+	.refine((p) => !p.startsWith("/") && !p.startsWith("\\"), "Absolute paths are not allowed")
+	.refine((p) => !/(^|[\\/])\.\.($|[\\/])/.test(p), "Path traversal (../) is not allowed");
 
 // ---------------------------------------------------------------------------
 // snap — Snapshot lifecycle management
@@ -54,16 +54,16 @@ export const SafePathSchema = z
 // ---------------------------------------------------------------------------
 
 export const SnapInputSchema = z.object({
-  /** Operation mode for the snap tool. */
-  mode: z.enum(["start", "check", "context", "end", "undo"]),
-  /** Task summary — required when mode is "start". */
-  task: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** Files relevant to this operation. */
-  files: z.array(SafePathSchema).max(MAX_FILES).optional(),
-  /** Keywords for pattern matching and context retrieval. */
-  keywords: z.array(z.string().min(1).max(MAX_SHORT_TEXT)).max(MAX_KEYWORDS).optional(),
-  /** Developer intent hint for context-aware behaviour. */
-  intent: z.enum(["implement", "debug", "refactor", "review", "explore"]).optional(),
+	/** Operation mode for the snap tool. */
+	mode: z.enum(["start", "check", "context", "end", "undo"]),
+	/** Task summary — required when mode is "start". */
+	task: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** Files relevant to this operation. */
+	files: z.array(SafePathSchema).max(MAX_FILES).optional(),
+	/** Keywords for pattern matching and context retrieval. */
+	keywords: z.array(z.string().min(1).max(MAX_SHORT_TEXT)).max(MAX_KEYWORDS).optional(),
+	/** Developer intent hint for context-aware behaviour. */
+	intent: z.enum(["implement", "debug", "refactor", "review", "explore"]).optional(),
 });
 
 export type SnapInput = z.infer<typeof SnapInputSchema>;
@@ -75,24 +75,24 @@ export type SnapInput = z.infer<typeof SnapInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const CheckInputSchema = z.object({
-  /** Validation mode selecting the analysis depth and focus. */
-  mode: z.enum([
-    "quick",
-    "full",
-    "patterns",
-    "build",
-    "circular",
-    "security",
-    "coverage",
-    "orphans",
-    "health",
-    "evolution",
-    "integrations",
-  ]),
-  /** File path to scope the check to a single file. */
-  file: SafePathSchema.optional(),
-  /** Raw source code to validate (alternative to file path). */
-  code: z.string().max(MAX_LONG_TEXT).optional(),
+	/** Validation mode selecting the analysis depth and focus. */
+	mode: z.enum([
+		"quick",
+		"full",
+		"patterns",
+		"build",
+		"circular",
+		"security",
+		"coverage",
+		"orphans",
+		"health",
+		"evolution",
+		"integrations",
+	]),
+	/** File path to scope the check to a single file. */
+	file: SafePathSchema.optional(),
+	/** Raw source code to validate (alternative to file path). */
+	code: z.string().max(MAX_LONG_TEXT).optional(),
 });
 
 export type CheckInput = z.infer<typeof CheckInputSchema>;
@@ -103,20 +103,20 @@ export type CheckInput = z.infer<typeof CheckInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const LearnInputSchema = z.object({
-  /** Learning operation mode. */
-  mode: z.enum(["load", "save", "search"]),
-  /** Trigger condition for the learning (used in save). */
-  trigger: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** Action to record (used in save). */
-  action: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** Learning classification (used in save). */
-  type: PatternTypeSchema.optional(),
-  /** Free-text search query (used in search). */
-  query: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** Intent hint for contextual loading. */
-  intent: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** File paths to scope learning retrieval. */
-  filePaths: z.array(SafePathSchema).max(MAX_FILES).optional(),
+	/** Learning operation mode. */
+	mode: z.enum(["load", "save", "search"]),
+	/** Trigger condition for the learning (used in save). */
+	trigger: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** Action to record (used in save). */
+	action: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** Learning classification (used in save). */
+	type: PatternTypeSchema.optional(),
+	/** Free-text search query (used in search). */
+	query: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** Intent hint for contextual loading. */
+	intent: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** File paths to scope learning retrieval. */
+	filePaths: z.array(SafePathSchema).max(MAX_FILES).optional(),
 });
 
 export type LearnInput = z.infer<typeof LearnInputSchema>;
@@ -127,12 +127,12 @@ export type LearnInput = z.infer<typeof LearnInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const IntegrateInputSchema = z.object({
-  /** Integration provider to activate. */
-  mode: z.enum(["git", "sentry", "github"]),
-  /** Files relevant to the integration context. */
-  files: z.array(SafePathSchema).max(MAX_FILES).optional(),
-  /** Additional context string (e.g. commit message, issue body). */
-  context: z.string().max(MAX_LONG_TEXT).optional(),
+	/** Integration provider to activate. */
+	mode: z.enum(["git", "sentry", "github"]),
+	/** Files relevant to the integration context. */
+	files: z.array(SafePathSchema).max(MAX_FILES).optional(),
+	/** Additional context string (e.g. commit message, issue body). */
+	context: z.string().max(MAX_LONG_TEXT).optional(),
 });
 
 export type IntegrateInput = z.infer<typeof IntegrateInputSchema>;
@@ -143,8 +143,8 @@ export type IntegrateInput = z.infer<typeof IntegrateInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const PulseInputSchema = z.object({
-  /** Pulse operation mode. */
-  mode: z.literal("health"),
+	/** Pulse operation mode. */
+	mode: z.literal("health"),
 });
 
 export type PulseInput = z.infer<typeof PulseInputSchema>;
@@ -155,12 +155,12 @@ export type PulseInput = z.infer<typeof PulseInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const GraphInputSchema = z.object({
-  /** Graph analysis mode. */
-  mode: z.enum(["deps", "files"]),
-  /** Entry point file or module to start traversal from. */
-  entryPoint: SafePathSchema.optional(),
-  /** Maximum traversal depth (default: 3). */
-  depth: z.number().int().positive().max(MAX_DEPTH).default(3),
+	/** Graph analysis mode. */
+	mode: z.enum(["deps", "files"]),
+	/** Entry point file or module to start traversal from. */
+	entryPoint: SafePathSchema.optional(),
+	/** Maximum traversal depth (default: 3). */
+	depth: z.number().int().positive().max(MAX_DEPTH).default(3),
 });
 
 export type GraphInput = z.infer<typeof GraphInputSchema>;
@@ -171,21 +171,33 @@ export type GraphInput = z.infer<typeof GraphInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const CacheInputSchema = z.object({
-  /** Cache domain to operate on. */
-  mode: z.enum(["errors", "patterns"]),
-  /** Cache lookup key. */
-  key: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
-  /** Value to store (write operation). JSON-serialized size capped at 1MB. */
-  value: z
-    .unknown()
-    .optional()
-    .refine(
-      (v) => v === undefined || JSON.stringify(v).length <= MAX_LONG_TEXT,
-      "Cache value exceeds maximum size (1MB serialized)",
-    ),
+	/** Cache domain to operate on. */
+	mode: z.enum(["errors", "patterns"]),
+	/** Cache lookup key. */
+	key: z.string().min(1).max(MAX_SHORT_TEXT).optional(),
+	/** Value to store (write operation). JSON-serialized size capped at 1MB. */
+	value: z
+		.unknown()
+		.optional()
+		.refine(
+			(v) => v === undefined || JSON.stringify(v).length <= MAX_LONG_TEXT,
+			"Cache value exceeds maximum size (1MB serialized)",
+		),
 });
 
 export type CacheInput = z.infer<typeof CacheInputSchema>;
+
+// ---------------------------------------------------------------------------
+// help — Tool discovery and documentation
+// Modes: tools | status | wire | modes | thresholds | decision | all
+// ---------------------------------------------------------------------------
+
+export const HelpInputSchema = z.object({
+	/** Help topic to display. */
+	mode: z.enum(["tools", "status", "wire", "modes", "thresholds", "decision", "all"]),
+});
+
+export type HelpInput = z.infer<typeof HelpInputSchema>;
 
 // ---------------------------------------------------------------------------
 // Per-tool schema map (used by ToolRegistry for dispatch)
@@ -200,13 +212,14 @@ export type CacheInput = z.infer<typeof CacheInputSchema>;
  * validation instead.
  */
 export const ToolInputSchemas = {
-  snap: SnapInputSchema,
-  check: CheckInputSchema,
-  learn: LearnInputSchema,
-  integrate: IntegrateInputSchema,
-  pulse: PulseInputSchema,
-  graph: GraphInputSchema,
-  cache: CacheInputSchema,
+	snap: SnapInputSchema,
+	check: CheckInputSchema,
+	learn: LearnInputSchema,
+	integrate: IntegrateInputSchema,
+	pulse: PulseInputSchema,
+	graph: GraphInputSchema,
+	cache: CacheInputSchema,
+	help: HelpInputSchema,
 } as const;
 
 /** Tool names derived from the schema map. */

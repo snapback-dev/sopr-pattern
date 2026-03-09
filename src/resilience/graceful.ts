@@ -28,10 +28,10 @@
  * the resilience layer is decoupled from any particular logging library.
  */
 export interface Logger {
-  debug(message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
+	debug(message: string, meta?: Record<string, unknown>): void;
+	info(message: string, meta?: Record<string, unknown>): void;
+	warn(message: string, meta?: Record<string, unknown>): void;
+	error(message: string, meta?: Record<string, unknown>): void;
 }
 
 /**
@@ -41,27 +41,27 @@ export interface Logger {
  * systems should substitute a structured JSON logger (e.g. pino, winston).
  */
 export class ConsoleLogger implements Logger {
-  private readonly prefix: string;
+	private readonly prefix: string;
 
-  /**
-   * @param prefix - An optional string prepended to every log line
-   *                 (e.g. the service or module name).
-   */
-  constructor(prefix = "") {
-    this.prefix = prefix ? `[${prefix}] ` : "";
-  }
+	/**
+	 * @param prefix - An optional string prepended to every log line
+	 *                 (e.g. the service or module name).
+	 */
+	constructor(prefix = "") {
+		this.prefix = prefix ? `[${prefix}] ` : "";
+	}
 
-  debug(_message: string, _meta?: Record<string, unknown>): void {}
+	debug(_message: string, _meta?: Record<string, unknown>): void {}
 
-  info(_message: string, _meta?: Record<string, unknown>): void {}
+	info(_message: string, _meta?: Record<string, unknown>): void {}
 
-  warn(message: string, meta?: Record<string, unknown>): void {
-    console.warn(`${this.prefix}${message}`, meta ?? "");
-  }
+	warn(message: string, meta?: Record<string, unknown>): void {
+		console.warn(`${this.prefix}${message}`, meta ?? "");
+	}
 
-  error(message: string, meta?: Record<string, unknown>): void {
-    console.error(`${this.prefix}${message}`, meta ?? "");
-  }
+	error(message: string, meta?: Record<string, unknown>): void {
+		console.error(`${this.prefix}${message}`, meta ?? "");
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -70,13 +70,13 @@ export class ConsoleLogger implements Logger {
 
 /** Options for {@link withGracefulDegradation}. */
 export interface GracefulDegradationOptions<TOutput> {
-  /** Logger to receive error reports when the wrapped function fails. */
-  logger?: Logger;
-  /**
-   * A static fallback value to return on failure instead of `null`.
-   * When provided the return type narrows from `TOutput | null` to `TOutput`.
-   */
-  fallback?: TOutput;
+	/** Logger to receive error reports when the wrapped function fails. */
+	logger?: Logger;
+	/**
+	 * A static fallback value to return on failure instead of `null`.
+	 * When provided the return type narrows from `TOutput | null` to `TOutput`.
+	 */
+	fallback?: TOutput;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,24 +107,24 @@ export interface GracefulDegradationOptions<TOutput> {
  * ```
  */
 export function withGracefulDegradation<TInput, TOutput>(
-  fn: (input: TInput) => Promise<TOutput>,
-  options?: GracefulDegradationOptions<TOutput>,
+	fn: (input: TInput) => Promise<TOutput>,
+	options?: GracefulDegradationOptions<TOutput>,
 ): (input: TInput) => Promise<TOutput | null> {
-  const logger = options?.logger;
-  const fallbackValue = options?.fallback ?? null;
+	const logger = options?.logger;
+	const fallbackValue = options?.fallback ?? null;
 
-  return async (input: TInput): Promise<TOutput | null> => {
-    try {
-      return await fn(input);
-    } catch (error: unknown) {
-      if (logger) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error("Graceful degradation: returning fallback", {
-          error: message,
-          fallback: fallbackValue === null ? "null" : typeof fallbackValue,
-        });
-      }
-      return fallbackValue;
-    }
-  };
+	return async (input: TInput): Promise<TOutput | null> => {
+		try {
+			return await fn(input);
+		} catch (error: unknown) {
+			if (logger) {
+				const message = error instanceof Error ? error.message : String(error);
+				logger.error("Graceful degradation: returning fallback", {
+					error: message,
+					fallback: fallbackValue === null ? "null" : typeof fallbackValue,
+				});
+			}
+			return fallbackValue;
+		}
+	};
 }

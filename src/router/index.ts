@@ -6,12 +6,12 @@
  * @module router
  */
 
-export type { DaemonClientConfig, DaemonHealth } from "./daemon-client.js";
-export { checkDaemonHealth, DaemonClient } from "./daemon-client.js";
+export type { DaemonClientConfig, DaemonHealth, DelegateHealth, RemoteClientConfig } from "./remote-client.js";
+export { checkDaemonHealth, checkDelegateHealth, DaemonClient, RemoteClient } from "./remote-client.js";
 export type {
-  RouteDecision,
-  TierMode,
-  TierRouterConfig,
-  ToolTier,
+	RouteDecision,
+	TierMode,
+	TierRouterConfig,
+	ToolTier,
 } from "./tier-router.js";
 export { classifyTool, TierRouter } from "./tier-router.js";

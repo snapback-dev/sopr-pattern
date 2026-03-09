@@ -36,8 +36,8 @@ export { SnapshotServiceImpl } from "./snapshot-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  CommandRunner,
-  ValidationServiceConfig,
+	CommandRunner,
+	ValidationServiceConfig,
 } from "./validation-service.js";
 export { ValidationServiceImpl } from "./validation-service.js";
 
@@ -53,10 +53,10 @@ export { LearningServiceImpl } from "./learning-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  GitCommandRunner,
-  GitHubFetcher,
-  IntegrationServiceConfig,
-  SentryFetcher,
+	GitCommandRunner,
+	GitHubFetcher,
+	IntegrationServiceConfig,
+	SentryFetcher,
 } from "./integration-service.js";
 export { IntegrationServiceImpl } from "./integration-service.js";
 
@@ -65,8 +65,8 @@ export { IntegrationServiceImpl } from "./integration-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  FileReader as SecurityFileReader,
-  SecurityServiceConfig,
+	FileReader as SecurityFileReader,
+	SecurityServiceConfig,
 } from "./security-service.js";
 export { SecurityServiceImpl } from "./security-service.js";
 
@@ -75,10 +75,10 @@ export { SecurityServiceImpl } from "./security-service.js";
 // ---------------------------------------------------------------------------
 
 export type {
-  DirectoryLister,
-  FileReader as GraphFileReader,
-  GraphServiceConfig,
-  PathChecker,
+	DirectoryLister,
+	FileReader as GraphFileReader,
+	GraphServiceConfig,
+	PathChecker,
 } from "./graph-service.js";
 export { GraphServiceImpl } from "./graph-service.js";
 

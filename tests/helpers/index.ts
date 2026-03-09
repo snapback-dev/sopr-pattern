@@ -18,14 +18,14 @@ import { noOpLogger, noOpProgress } from "../../src/contracts/context.js";
 
 /** Default values used by `createMockContext`. */
 const MOCK_CONTEXT_DEFAULTS: ToolContext = Object.freeze({
-  workspacePath: "/tmp/sopr-test-workspace",
-  sessionId: "test-session-001",
-  capabilities: Object.freeze(["git", "sentry"]),
-  timestamp: 1_700_000_000_000,
-  requestId: "req-test-001",
-  signal: AbortSignal.abort(), // Pre-aborted for safety in tests
-  logger: noOpLogger,
-  progress: noOpProgress,
+	workspacePath: "/tmp/sopr-test-workspace",
+	sessionId: "test-session-001",
+	capabilities: Object.freeze(["git", "sentry"]),
+	timestamp: 1_700_000_000_000,
+	requestId: "req-test-001",
+	signal: AbortSignal.abort(), // Pre-aborted for safety in tests
+	logger: noOpLogger,
+	progress: noOpProgress,
 });
 
 /**
@@ -38,23 +38,23 @@ const MOCK_CONTEXT_DEFAULTS: ToolContext = Object.freeze({
  * behaviour of `createToolContext`.
  */
 export function createMockContext(overrides: Partial<ToolContext> = {}): ToolContext {
-  const capabilities =
-    overrides.capabilities !== undefined
-      ? Object.freeze([...overrides.capabilities])
-      : MOCK_CONTEXT_DEFAULTS.capabilities;
+	const capabilities =
+		overrides.capabilities !== undefined
+			? Object.freeze([...overrides.capabilities])
+			: MOCK_CONTEXT_DEFAULTS.capabilities;
 
-  const ctx: ToolContext = {
-    workspacePath: overrides.workspacePath ?? MOCK_CONTEXT_DEFAULTS.workspacePath,
-    sessionId: overrides.sessionId ?? MOCK_CONTEXT_DEFAULTS.sessionId,
-    capabilities,
-    timestamp: overrides.timestamp ?? MOCK_CONTEXT_DEFAULTS.timestamp,
-    requestId: overrides.requestId ?? MOCK_CONTEXT_DEFAULTS.requestId,
-    signal: overrides.signal ?? new AbortController().signal,
-    logger: overrides.logger ?? noOpLogger,
-    progress: overrides.progress ?? noOpProgress,
-  };
+	const ctx: ToolContext = {
+		workspacePath: overrides.workspacePath ?? MOCK_CONTEXT_DEFAULTS.workspacePath,
+		sessionId: overrides.sessionId ?? MOCK_CONTEXT_DEFAULTS.sessionId,
+		capabilities,
+		timestamp: overrides.timestamp ?? MOCK_CONTEXT_DEFAULTS.timestamp,
+		requestId: overrides.requestId ?? MOCK_CONTEXT_DEFAULTS.requestId,
+		signal: overrides.signal ?? new AbortController().signal,
+		logger: overrides.logger ?? noOpLogger,
+		progress: overrides.progress ?? noOpProgress,
+	};
 
-  return Object.freeze(ctx);
+	return Object.freeze(ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -63,26 +63,26 @@ export function createMockContext(overrides: Partial<ToolContext> = {}): ToolCon
 
 /** A single captured log entry. */
 export interface LogEntry {
-  level: "debug" | "info" | "warn" | "error";
-  message: string;
-  meta?: unknown;
+	level: "debug" | "info" | "warn" | "error";
+	message: string;
+	meta?: unknown;
 }
 
 /** A logger that records every call for later assertion. */
 export interface MockLogger {
-  debug(message: string, meta?: unknown): void;
-  info(message: string, meta?: unknown): void;
-  warn(message: string, meta?: unknown): void;
-  error(message: string, meta?: unknown): void;
+	debug(message: string, meta?: unknown): void;
+	info(message: string, meta?: unknown): void;
+	warn(message: string, meta?: unknown): void;
+	error(message: string, meta?: unknown): void;
 
-  /** All log entries captured since creation (ordered by call sequence). */
-  readonly entries: readonly LogEntry[];
+	/** All log entries captured since creation (ordered by call sequence). */
+	readonly entries: readonly LogEntry[];
 
-  /** Convenience: entries filtered to a specific level. */
-  entriesAt(level: LogEntry["level"]): readonly LogEntry[];
+	/** Convenience: entries filtered to a specific level. */
+	entriesAt(level: LogEntry["level"]): readonly LogEntry[];
 
-  /** Reset captured entries. */
-  clear(): void;
+	/** Reset captured entries. */
+	clear(): void;
 }
 
 /**
@@ -97,32 +97,32 @@ export interface MockLogger {
  * ```
  */
 export function createMockLogger(): MockLogger {
-  const entries: LogEntry[] = [];
+	const entries: LogEntry[] = [];
 
-  function record(level: LogEntry["level"]) {
-    return (message: string, meta?: unknown) => {
-      entries.push({ level, message, meta });
-    };
-  }
+	function record(level: LogEntry["level"]) {
+		return (message: string, meta?: unknown) => {
+			entries.push({ level, message, meta });
+		};
+	}
 
-  return {
-    debug: record("debug"),
-    info: record("info"),
-    warn: record("warn"),
-    error: record("error"),
+	return {
+		debug: record("debug"),
+		info: record("info"),
+		warn: record("warn"),
+		error: record("error"),
 
-    get entries(): readonly LogEntry[] {
-      return entries;
-    },
+		get entries(): readonly LogEntry[] {
+			return entries;
+		},
 
-    entriesAt(level: LogEntry["level"]): readonly LogEntry[] {
-      return entries.filter((e) => e.level === level);
-    },
+		entriesAt(level: LogEntry["level"]): readonly LogEntry[] {
+			return entries.filter((e) => e.level === level);
+		},
 
-    clear() {
-      entries.length = 0;
-    },
-  };
+		clear() {
+			entries.length = 0;
+		},
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -135,35 +135,35 @@ export function createMockLogger(): MockLogger {
  * Returns absolute paths sorted lexicographically for deterministic output.
  */
 export function collectTsFiles(dir: string): string[] {
-  const results: string[] = [];
+	const results: string[] = [];
 
-  if (!fs.existsSync(dir)) {
-    return results;
-  }
+	if (!fs.existsSync(dir)) {
+		return results;
+	}
 
-  function walk(current: string): void {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
-        results.push(fullPath);
-      }
-    }
-  }
+	function walk(current: string): void {
+		for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+			const fullPath = path.join(current, entry.name);
+			if (entry.isDirectory()) {
+				walk(fullPath);
+			} else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+				results.push(fullPath);
+			}
+		}
+	}
 
-  walk(dir);
-  return results.sort();
+	walk(dir);
+	return results.sort();
 }
 
 /** Represents a single import found in a source file. */
 export interface ParsedImport {
-  /** The full import specifier string (e.g. "../services/foo.js"). */
-  specifier: string;
-  /** 1-based line number where the import appears. */
-  line: number;
-  /** The raw source line text. */
-  raw: string;
+	/** The full import specifier string (e.g. "../services/foo.js"). */
+	specifier: string;
+	/** 1-based line number where the import appears. */
+	line: number;
+	/** The raw source line text. */
+	raw: string;
 }
 
 /**
@@ -180,31 +180,30 @@ export interface ParsedImport {
  * are not used in this codebase and would require AST parsing.
  */
 export function parseImports(filePath: string): ParsedImport[] {
-  const content = fs.readFileSync(filePath, "utf-8");
-  const lines = content.split("\n");
-  const results: ParsedImport[] = [];
+	const content = fs.readFileSync(filePath, "utf-8");
+	const lines = content.split("\n");
+	const results: ParsedImport[] = [];
 
-  // Matches:
-  //   import ... from "specifier"
-  //   import "specifier"
-  //   export ... from "specifier"
-  // Handles both single and double quotes.
-  const importPattern =
-    /(?:^|\s)(?:import|export)\s+(?:type\s+)?(?:.*?\s+from\s+)?['"]([^'"]+)['"]/;
+	// Matches:
+	//   import ... from "specifier"
+	//   import "specifier"
+	//   export ... from "specifier"
+	// Handles both single and double quotes.
+	const importPattern = /(?:^|\s)(?:import|export)\s+(?:type\s+)?(?:.*?\s+from\s+)?['"]([^'"]+)['"]/;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
-    const match = importPattern.exec(line);
-    if (match?.[1] !== undefined) {
-      results.push({
-        specifier: match[1],
-        line: i + 1,
-        raw: line.trimEnd(),
-      });
-    }
-  }
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i]!;
+		const match = importPattern.exec(line);
+		if (match?.[1] !== undefined) {
+			results.push({
+				specifier: match[1],
+				line: i + 1,
+				raw: line.trimEnd(),
+			});
+		}
+	}
 
-  return results;
+	return results;
 }
 
 /**
@@ -216,30 +215,26 @@ export function parseImports(filePath: string): ParsedImport[] {
  * Returns `null` for non-relative imports (npm packages) or imports that
  * don't resolve to a known SOPR layer.
  */
-export function resolveLayerFromImport(
-  importSpecifier: string,
-  importingFile: string,
-  srcRoot: string,
-): string | null {
-  // Only analyze relative imports
-  if (!importSpecifier.startsWith(".")) {
-    return null;
-  }
+export function resolveLayerFromImport(importSpecifier: string, importingFile: string, srcRoot: string): string | null {
+	// Only analyze relative imports
+	if (!importSpecifier.startsWith(".")) {
+		return null;
+	}
 
-  const importingDir = path.dirname(importingFile);
-  const resolvedAbsolute = path.resolve(importingDir, importSpecifier);
+	const importingDir = path.dirname(importingFile);
+	const resolvedAbsolute = path.resolve(importingDir, importSpecifier);
 
-  // Normalize to be relative to srcRoot
-  const relativeToSrc = path.relative(srcRoot, resolvedAbsolute);
+	// Normalize to be relative to srcRoot
+	const relativeToSrc = path.relative(srcRoot, resolvedAbsolute);
 
-  // Guard against paths escaping src/
-  if (relativeToSrc.startsWith("..")) {
-    return null;
-  }
+	// Guard against paths escaping src/
+	if (relativeToSrc.startsWith("..")) {
+		return null;
+	}
 
-  // Extract the first path segment (the layer directory name)
-  const firstSegment = relativeToSrc.split(path.sep)[0];
-  return firstSegment ?? null;
+	// Extract the first path segment (the layer directory name)
+	const firstSegment = relativeToSrc.split(path.sep)[0];
+	return firstSegment ?? null;
 }
 
 /**
@@ -250,12 +245,12 @@ export function resolveLayerFromImport(
  * inside a recognized layer directory.
  */
 export function getLayerForFile(filePath: string, srcRoot: string): string | null {
-  const relativeToSrc = path.relative(srcRoot, filePath);
-  if (relativeToSrc.startsWith("..")) {
-    return null;
-  }
-  const firstSegment = relativeToSrc.split(path.sep)[0];
-  return firstSegment ?? null;
+	const relativeToSrc = path.relative(srcRoot, filePath);
+	if (relativeToSrc.startsWith("..")) {
+		return null;
+	}
+	const firstSegment = relativeToSrc.split(path.sep)[0];
+	return firstSegment ?? null;
 }
 
 /** SOPR layer directories in dependency order (1 = highest, 4 = lowest). */

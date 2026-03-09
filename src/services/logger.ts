@@ -23,10 +23,10 @@ export type LogContext = Readonly<Record<string, unknown>>;
  * is intentionally small to keep implementations simple.
  */
 export interface Logger {
-  debug(message: string, context?: LogContext): void;
-  info(message: string, context?: LogContext): void;
-  warn(message: string, context?: LogContext): void;
-  error(message: string, context?: LogContext): void;
+	debug(message: string, context?: LogContext): void;
+	info(message: string, context?: LogContext): void;
+	warn(message: string, context?: LogContext): void;
+	error(message: string, context?: LogContext): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,41 +40,41 @@ export interface Logger {
  * development and testing. Production should use a structured logger.
  */
 export class ConsoleLogger implements Logger {
-  constructor(private readonly prefix: string = "") {}
+	constructor(private readonly prefix: string = "") {}
 
-  debug(message: string, context?: LogContext): void {
-    this.log("DEBUG", message, context);
-  }
+	debug(message: string, context?: LogContext): void {
+		this.log("DEBUG", message, context);
+	}
 
-  info(message: string, context?: LogContext): void {
-    this.log("INFO", message, context);
-  }
+	info(message: string, context?: LogContext): void {
+		this.log("INFO", message, context);
+	}
 
-  warn(message: string, context?: LogContext): void {
-    this.log("WARN", message, context);
-  }
+	warn(message: string, context?: LogContext): void {
+		this.log("WARN", message, context);
+	}
 
-  error(message: string, context?: LogContext): void {
-    this.log("ERROR", message, context);
-  }
+	error(message: string, context?: LogContext): void {
+		this.log("ERROR", message, context);
+	}
 
-  private log(level: string, message: string, context?: LogContext): void {
-    const ts = new Date().toISOString();
-    const tag = this.prefix ? `[${this.prefix}]` : "";
-    const ctx = context ? ` ${JSON.stringify(context)}` : "";
-    // Using console methods mapped to level for proper stderr/stdout routing
-    switch (level) {
-      case "ERROR":
-        console.error(`${ts} ${level} ${tag} ${message}${ctx}`);
-        break;
-      case "WARN":
-        console.warn(`${ts} ${level} ${tag} ${message}${ctx}`);
-        break;
-      case "DEBUG":
-        break;
-      default:
-    }
-  }
+	private log(level: string, message: string, context?: LogContext): void {
+		const ts = new Date().toISOString();
+		const tag = this.prefix ? `[${this.prefix}]` : "";
+		const ctx = context ? ` ${JSON.stringify(context)}` : "";
+		// Using console methods mapped to level for proper stderr/stdout routing
+		switch (level) {
+			case "ERROR":
+				console.error(`${ts} ${level} ${tag} ${message}${ctx}`);
+				break;
+			case "WARN":
+				console.warn(`${ts} ${level} ${tag} ${message}${ctx}`);
+				break;
+			case "DEBUG":
+				break;
+			default:
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -83,16 +83,16 @@ export class ConsoleLogger implements Logger {
 
 /** Silent logger that discards all messages. Useful in tests. */
 export class NoOpLogger implements Logger {
-  debug(_message: string, _context?: LogContext): void {
-    /* intentionally empty */
-  }
-  info(_message: string, _context?: LogContext): void {
-    /* intentionally empty */
-  }
-  warn(_message: string, _context?: LogContext): void {
-    /* intentionally empty */
-  }
-  error(_message: string, _context?: LogContext): void {
-    /* intentionally empty */
-  }
+	debug(_message: string, _context?: LogContext): void {
+		/* intentionally empty */
+	}
+	info(_message: string, _context?: LogContext): void {
+		/* intentionally empty */
+	}
+	warn(_message: string, _context?: LogContext): void {
+		/* intentionally empty */
+	}
+	error(_message: string, _context?: LogContext): void {
+		/* intentionally empty */
+	}
 }

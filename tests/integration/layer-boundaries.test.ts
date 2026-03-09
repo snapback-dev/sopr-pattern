@@ -23,12 +23,7 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
-  collectTsFiles,
-  getLayerForFile,
-  parseImports,
-  resolveLayerFromImport,
-} from "../helpers/index.js";
+import { collectTsFiles, getLayerForFile, parseImports, resolveLayerFromImport } from "../helpers/index.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -48,46 +43,45 @@ const SERVICES_DIR = path.join(SRC_ROOT, "services");
 // ---------------------------------------------------------------------------
 
 interface LayerViolation {
-  file: string;
-  line: number;
-  sourceLayer: string;
-  targetLayer: string;
-  importSpecifier: string;
-  rawLine: string;
+	file: string;
+	line: number;
+	sourceLayer: string;
+	targetLayer: string;
+	importSpecifier: string;
+	rawLine: string;
 }
 
 /**
  * Scan all TypeScript files in a layer directory and return any
  * imports that target forbidden layers.
  */
-function detectForbiddenImports(
-  layerDir: string,
-  forbiddenTargets: readonly string[],
-): LayerViolation[] {
-  const violations: LayerViolation[] = [];
-  const files = collectTsFiles(layerDir);
+function detectForbiddenImports(layerDir: string, forbiddenTargets: readonly string[]): LayerViolation[] {
+	const violations: LayerViolation[] = [];
+	const files = collectTsFiles(layerDir);
 
-  for (const filePath of files) {
-    const sourceLayer = getLayerForFile(filePath, SRC_ROOT);
-    if (sourceLayer === null) continue;
+	for (const filePath of files) {
+		const sourceLayer = getLayerForFile(filePath, SRC_ROOT);
+		if (sourceLayer === null) {
+			continue;
+		}
 
-    const imports = parseImports(filePath);
-    for (const imp of imports) {
-      const targetLayer = resolveLayerFromImport(imp.specifier, filePath, SRC_ROOT);
-      if (targetLayer !== null && forbiddenTargets.includes(targetLayer)) {
-        violations.push({
-          file: path.relative(SRC_ROOT, filePath),
-          line: imp.line,
-          sourceLayer,
-          targetLayer,
-          importSpecifier: imp.specifier,
-          rawLine: imp.raw,
-        });
-      }
-    }
-  }
+		const imports = parseImports(filePath);
+		for (const imp of imports) {
+			const targetLayer = resolveLayerFromImport(imp.specifier, filePath, SRC_ROOT);
+			if (targetLayer !== null && forbiddenTargets.includes(targetLayer)) {
+				violations.push({
+					file: path.relative(SRC_ROOT, filePath),
+					line: imp.line,
+					sourceLayer,
+					targetLayer,
+					importSpecifier: imp.specifier,
+					rawLine: imp.raw,
+				});
+			}
+		}
+	}
 
-  return violations;
+	return violations;
 }
 
 /**
@@ -95,14 +89,16 @@ function detectForbiddenImports(
  * failure messages.
  */
 function formatViolations(violations: LayerViolation[]): string {
-  if (violations.length === 0) return "No violations found.";
+	if (violations.length === 0) {
+		return "No violations found.";
+	}
 
-  return violations
-    .map(
-      (v) =>
-        `  ${v.file}:${v.line} -- ${v.sourceLayer} -> ${v.targetLayer} via "${v.importSpecifier}"\n    ${v.rawLine}`,
-    )
-    .join("\n\n");
+	return violations
+		.map(
+			(v) =>
+				`  ${v.file}:${v.line} -- ${v.sourceLayer} -> ${v.targetLayer} via "${v.importSpecifier}"\n    ${v.rawLine}`,
+		)
+		.join("\n\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -110,145 +106,193 @@ function formatViolations(violations: LayerViolation[]): string {
 // ---------------------------------------------------------------------------
 
 describe("SOPR Layer Boundaries", () => {
-  it("protocol layer does not import services or tools", () => {
-    const forbidden = ["services", "tools"] as const;
-    const violations = detectForbiddenImports(PROTOCOL_DIR, forbidden);
+	// -----------------------------------------------------------------------
+	// Core SOPR Layer Rules (per SOPR Integration Plan S3.3)
+	// -----------------------------------------------------------------------
 
-    expect(violations, formatViolations(violations)).toHaveLength(0);
-  });
+	it("protocol layer does not import services or tools", () => {
+		const forbidden = ["services", "tools"] as const;
+		const violations = detectForbiddenImports(PROTOCOL_DIR, forbidden);
 
-  it("registry layer does not import services or tools", () => {
-    // Registry may import from router and telemetry (open core cross-cutting)
-    const forbidden = ["services", "tools"] as const;
-    const violations = detectForbiddenImports(REGISTRY_DIR, forbidden);
+		expect(violations, formatViolations(violations)).toHaveLength(0);
+	});
 
-    expect(violations, formatViolations(violations)).toHaveLength(0);
-  });
+	it("registry layer does not import services or tools", () => {
+		// Registry may import from router and telemetry (open core cross-cutting)
+		const forbidden = ["services", "tools"] as const;
+		const violations = detectForbiddenImports(REGISTRY_DIR, forbidden);
 
-  it("tools layer does not import protocol or registry", () => {
-    const forbidden = ["protocol", "registry"] as const;
-    const violations = detectForbiddenImports(TOOLS_DIR, forbidden);
+		expect(violations, formatViolations(violations)).toHaveLength(0);
+	});
 
-    expect(violations, formatViolations(violations)).toHaveLength(0);
-  });
+	it("tools layer does not import protocol or registry", () => {
+		const forbidden = ["protocol", "registry"] as const;
+		const violations = detectForbiddenImports(TOOLS_DIR, forbidden);
 
-  it("services layer does not import tools, registry, or protocol", () => {
-    const forbidden = ["tools", "registry", "protocol"] as const;
-    const violations = detectForbiddenImports(SERVICES_DIR, forbidden);
+		expect(violations, formatViolations(violations)).toHaveLength(0);
+	});
 
-    expect(violations, formatViolations(violations)).toHaveLength(0);
-  });
+	it("services layer does not import tools, registry, or protocol", () => {
+		const forbidden = ["tools", "registry", "protocol"] as const;
+		const violations = detectForbiddenImports(SERVICES_DIR, forbidden);
 
-  it("services do not import other service implementations directly", () => {
-    const violations: LayerViolation[] = [];
-    const files = collectTsFiles(SERVICES_DIR);
+		expect(violations, formatViolations(violations)).toHaveLength(0);
+	});
 
-    for (const filePath of files) {
-      // Skip barrel files — they exist to re-export all services
-      const basename = path.basename(filePath, ".ts");
-      if (basename === "index") continue;
+	// -----------------------------------------------------------------------
+	// Explicit One-Way Dependency Tests (S3.3 Enhancement)
+	// These duplicate some coverage above but provide clear documentation
+	// of the architectural invariants from the SOPR audit.
+	// -----------------------------------------------------------------------
 
-      const imports = parseImports(filePath);
-      for (const imp of imports) {
-        // Skip comment lines that look like imports (e.g. "// import ... from ...")
-        if (imp.raw.trimStart().startsWith("//")) continue;
+	it("tools/ NEVER imports from registry/ (reverse dependency violation)", () => {
+		const violations = detectForbiddenImports(TOOLS_DIR, ["registry"]);
+		expect(
+			violations,
+			`tools/ must not depend on registry/ — breaks hexagonal architecture:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
 
-        // Only check relative imports within the services layer
-        if (!imp.specifier.startsWith(".")) continue;
+	it("services/ NEVER imports from tools/ (reverse dependency violation)", () => {
+		const violations = detectForbiddenImports(SERVICES_DIR, ["tools"]);
+		expect(
+			violations,
+			`services/ must not depend on tools/ — services are lower-layer primitives:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
 
-        const targetLayer = resolveLayerFromImport(imp.specifier, filePath, SRC_ROOT);
+	it("protocol/ NEVER imports from tools/ or services/ (layer skip violation)", () => {
+		const violations = detectForbiddenImports(PROTOCOL_DIR, ["tools", "services"]);
+		expect(
+			violations,
+			`protocol/ must only reach registry/ — direct service/tool access violates SOPR:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
 
-        // Skip imports that leave the services layer (handled by other tests)
-        if (targetLayer !== "services") continue;
+	// -----------------------------------------------------------------------
+	// Cross-Service Isolation
+	// -----------------------------------------------------------------------
 
-        // Resolve the actual target path to check if it's a concrete implementation
-        const importingDir = path.dirname(filePath);
-        const resolvedPath = path.resolve(importingDir, imp.specifier);
-        const relativeToServices = path.relative(SERVICES_DIR, resolvedPath);
+	it("services do not import other service implementations directly", () => {
+		const violations: LayerViolation[] = [];
+		const files = collectTsFiles(SERVICES_DIR);
 
-        // Allowed patterns:
-        //  - Importing from an interfaces/types file (e.g. "./interfaces.ts")
-        //  - Importing from an index barrel that re-exports interfaces
-        //  - Importing from a types directory
-        //  - Importing infrastructure files (logger, adapters) shared across services
-        //
-        // Forbidden:
-        //  - Importing a concrete service class file from another service subdirectory
-        //  - e.g. SnapshotService importing ../../ValidationService/validator.ts
-        const isInfrastructureImport =
-          relativeToServices.includes("interface") ||
-          relativeToServices.includes("types") ||
-          relativeToServices.includes("index") ||
-          relativeToServices.includes("logger") ||
-          relativeToServices.includes("adapters") ||
-          relativeToServices.endsWith(".d.ts");
+		for (const filePath of files) {
+			// Skip barrel files — they exist to re-export all services
+			const basename = path.basename(filePath, ".ts");
+			if (basename === "index") {
+				continue;
+			}
 
-        // Check if the import crosses service subdirectory boundaries
-        // e.g. from services/snapshot/ importing services/validation/impl.ts
-        const sourceRelative = path.relative(SERVICES_DIR, filePath);
-        const sourceTopDir = sourceRelative.split(path.sep)[0];
-        const targetTopDir = relativeToServices.split(path.sep)[0];
+			const imports = parseImports(filePath);
+			for (const imp of imports) {
+				// Skip comment lines that look like imports (e.g. "// import ... from ...")
+				if (imp.raw.trimStart().startsWith("//")) {
+					continue;
+				}
 
-        // If both are in the same service subdirectory, this is fine
-        if (sourceTopDir === targetTopDir) continue;
+				// Only check relative imports within the services layer
+				if (!imp.specifier.startsWith(".")) {
+					continue;
+				}
 
-        // Cross-service import that isn't infrastructure -- violation
-        if (!isInfrastructureImport) {
-          violations.push({
-            file: path.relative(SRC_ROOT, filePath),
-            line: imp.line,
-            sourceLayer: `services/${sourceTopDir}`,
-            targetLayer: `services/${targetTopDir}`,
-            importSpecifier: imp.specifier,
-            rawLine: imp.raw,
-          });
-        }
-      }
-    }
+				const targetLayer = resolveLayerFromImport(imp.specifier, filePath, SRC_ROOT);
 
-    expect(
-      violations,
-      `Service-to-service implementation imports detected:\n${formatViolations(violations)}`,
-    ).toHaveLength(0);
-  });
+				// Skip imports that leave the services layer (handled by other tests)
+				if (targetLayer !== "services") {
+					continue;
+				}
 
-  it("no layer imports from utils (not a recognized SOPR layer)", () => {
-    // utils/ is not part of the SOPR 4-layer model. If it exists, layers
-    // should not depend on it -- shared utilities belong in resilience/ or
-    // contracts/.
-    const layers = [PROTOCOL_DIR, REGISTRY_DIR, TOOLS_DIR, SERVICES_DIR];
-    const violations: LayerViolation[] = [];
+				// Resolve the actual target path to check if it's a concrete implementation
+				const importingDir = path.dirname(filePath);
+				const resolvedPath = path.resolve(importingDir, imp.specifier);
+				const relativeToServices = path.relative(SERVICES_DIR, resolvedPath);
 
-    for (const layerDir of layers) {
-      const found = detectForbiddenImports(layerDir, ["utils"]);
-      violations.push(...found);
-    }
+				// Allowed patterns:
+				//  - Importing from an interfaces/types file (e.g. "./interfaces.ts")
+				//  - Importing from an index barrel that re-exports interfaces
+				//  - Importing from a types directory
+				//  - Importing infrastructure files (logger, adapters) shared across services
+				//
+				// Forbidden:
+				//  - Importing a concrete service class file from another service subdirectory
+				//  - e.g. SnapshotService importing ../../ValidationService/validator.ts
+				const isInfrastructureImport =
+					relativeToServices.includes("interface") ||
+					relativeToServices.includes("types") ||
+					relativeToServices.includes("index") ||
+					relativeToServices.includes("logger") ||
+					relativeToServices.includes("adapters") ||
+					relativeToServices.endsWith(".d.ts");
 
-    expect(
-      violations,
-      `Imports from utils/ detected (use contracts/ or resilience/ instead):\n${formatViolations(violations)}`,
-    ).toHaveLength(0);
-  });
+				// Check if the import crosses service subdirectory boundaries
+				// e.g. from services/snapshot/ importing services/validation/impl.ts
+				const sourceRelative = path.relative(SERVICES_DIR, filePath);
+				const sourceTopDir = sourceRelative.split(path.sep)[0];
+				const targetTopDir = relativeToServices.split(path.sep)[0];
 
-  it("contracts layer has no imports from any SOPR layer", () => {
-    const contractsDir = path.join(SRC_ROOT, "contracts");
-    const forbidden = ["protocol", "registry", "tools", "services", "resilience"] as const;
-    const violations = detectForbiddenImports(contractsDir, forbidden);
+				// If both are in the same service subdirectory, this is fine
+				if (sourceTopDir === targetTopDir) {
+					continue;
+				}
 
-    expect(
-      violations,
-      `Contracts must be pure type definitions with no layer imports:\n${formatViolations(violations)}`,
-    ).toHaveLength(0);
-  });
+				// Cross-service import that isn't infrastructure -- violation
+				if (!isInfrastructureImport) {
+					violations.push({
+						file: path.relative(SRC_ROOT, filePath),
+						line: imp.line,
+						sourceLayer: `services/${sourceTopDir}`,
+						targetLayer: `services/${targetTopDir}`,
+						importSpecifier: imp.specifier,
+						rawLine: imp.raw,
+					});
+				}
+			}
+		}
 
-  it("resilience layer has no imports from SOPR business layers", () => {
-    const resilienceDir = path.join(SRC_ROOT, "resilience");
-    const forbidden = ["protocol", "registry", "tools", "services"] as const;
-    const violations = detectForbiddenImports(resilienceDir, forbidden);
+		expect(
+			violations,
+			`Service-to-service implementation imports detected:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
 
-    expect(
-      violations,
-      `Resilience must be a utility layer with no business layer imports:\n${formatViolations(violations)}`,
-    ).toHaveLength(0);
-  });
+	it("no layer imports from utils (not a recognized SOPR layer)", () => {
+		// utils/ is not part of the SOPR 4-layer model. If it exists, layers
+		// should not depend on it -- shared utilities belong in resilience/ or
+		// contracts/.
+		const layers = [PROTOCOL_DIR, REGISTRY_DIR, TOOLS_DIR, SERVICES_DIR];
+		const violations: LayerViolation[] = [];
+
+		for (const layerDir of layers) {
+			const found = detectForbiddenImports(layerDir, ["utils"]);
+			violations.push(...found);
+		}
+
+		expect(
+			violations,
+			`Imports from utils/ detected (use contracts/ or resilience/ instead):\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
+
+	it("contracts layer has no imports from any SOPR layer", () => {
+		const contractsDir = path.join(SRC_ROOT, "contracts");
+		const forbidden = ["protocol", "registry", "tools", "services", "resilience"] as const;
+		const violations = detectForbiddenImports(contractsDir, forbidden);
+
+		expect(
+			violations,
+			`Contracts must be pure type definitions with no layer imports:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
+
+	it("resilience layer has no imports from SOPR business layers", () => {
+		const resilienceDir = path.join(SRC_ROOT, "resilience");
+		const forbidden = ["protocol", "registry", "tools", "services"] as const;
+		const violations = detectForbiddenImports(resilienceDir, forbidden);
+
+		expect(
+			violations,
+			`Resilience must be a utility layer with no business layer imports:\n${formatViolations(violations)}`,
+		).toHaveLength(0);
+	});
 });

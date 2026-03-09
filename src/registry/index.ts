@@ -8,8 +8,8 @@ export type { JsonSchemaObject } from "./schema-converter.js";
 export { zodSchemaToJsonSchema } from "./schema-converter.js";
 export { ToolRegistry } from "./tool-registry.js";
 export type {
-  ModeHandler,
-  ToolDefinition,
-  ToolRegistryConfig,
+	ModeHandler,
+	ToolDefinition,
+	ToolRegistryConfig,
 } from "./types.js";
 export { DEFAULT_REGISTRY_CONFIG } from "./types.js";

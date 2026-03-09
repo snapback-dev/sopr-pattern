@@ -19,15 +19,7 @@
 export type LogContext = Readonly<Record<string, unknown>>;
 
 /** MCP-compatible log levels. */
-export type LogLevel =
-  | "debug"
-  | "info"
-  | "notice"
-  | "warning"
-  | "error"
-  | "critical"
-  | "alert"
-  | "emergency";
+export type LogLevel = "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency";
 
 /**
  * Context-scoped logger that tools use to report diagnostic information.
@@ -36,10 +28,10 @@ export type LogLevel =
  * In standalone mode, it falls back to console logging.
  */
 export interface ContextLogger {
-  debug(message: string, context?: LogContext): void;
-  info(message: string, context?: LogContext): void;
-  warn(message: string, context?: LogContext): void;
-  error(message: string, context?: LogContext): void;
+	debug(message: string, context?: LogContext): void;
+	info(message: string, context?: LogContext): void;
+	warn(message: string, context?: LogContext): void;
+	error(message: string, context?: LogContext): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,52 +58,52 @@ export type ProgressReporter = (message: string, progressPercent: number, total?
  * params or service inputs, never in the context.
  */
 export interface ToolContext {
-  /** Absolute path to the workspace root (e.g. project directory). */
-  readonly workspacePath: string;
+	/** Absolute path to the workspace root (e.g. project directory). */
+	readonly workspacePath: string;
 
-  /** Opaque session identifier -- stable for the lifetime of a client session. */
-  readonly sessionId: string;
+	/** Opaque session identifier -- stable for the lifetime of a client session. */
+	readonly sessionId: string;
 
-  /**
-   * Feature capabilities advertised by the client.
-   * Services use this to conditionally enable or disable behaviour
-   * (e.g. "git", "sentry", "github").
-   */
-  readonly capabilities: readonly string[];
+	/**
+	 * Feature capabilities advertised by the client.
+	 * Services use this to conditionally enable or disable behaviour
+	 * (e.g. "git", "sentry", "github").
+	 */
+	readonly capabilities: readonly string[];
 
-  /** Unix-epoch millisecond timestamp of request receipt. */
-  readonly timestamp: number;
+	/** Unix-epoch millisecond timestamp of request receipt. */
+	readonly timestamp: number;
 
-  /**
-   * Unique identifier for this individual request.
-   * Used for correlation in logs, traces, and error reports.
-   */
-  readonly requestId: string;
+	/**
+	 * Unique identifier for this individual request.
+	 * Used for correlation in logs, traces, and error reports.
+	 */
+	readonly requestId: string;
 
-  /**
-   * Cancellation signal for this request.
-   *
-   * Tools and services SHOULD check `signal.aborted` before starting
-   * expensive operations and SHOULD abort early when the signal fires.
-   * This enables responsive cancellation of long-running operations.
-   */
-  readonly signal: AbortSignal;
+	/**
+	 * Cancellation signal for this request.
+	 *
+	 * Tools and services SHOULD check `signal.aborted` before starting
+	 * expensive operations and SHOULD abort early when the signal fires.
+	 * This enables responsive cancellation of long-running operations.
+	 */
+	readonly signal: AbortSignal;
 
-  /**
-   * Context-scoped logger for diagnostic output.
-   *
-   * Tools use this to log warnings, errors, and debug information
-   * that will be visible to the client or recorded for debugging.
-   */
-  readonly logger: ContextLogger;
+	/**
+	 * Context-scoped logger for diagnostic output.
+	 *
+	 * Tools use this to log warnings, errors, and debug information
+	 * that will be visible to the client or recorded for debugging.
+	 */
+	readonly logger: ContextLogger;
 
-  /**
-   * Progress reporter for long-running operations.
-   *
-   * Tools call this to report incremental progress. The function
-   * is a no-op if the client doesn't support progress notifications.
-   */
-  readonly progress: ProgressReporter;
+	/**
+	 * Progress reporter for long-running operations.
+	 *
+	 * Tools call this to report incremental progress. The function
+	 * is a no-op if the client doesn't support progress notifications.
+	 */
+	readonly progress: ProgressReporter;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,26 +112,26 @@ export interface ToolContext {
 
 /** Raw inputs accepted by the context factory. */
 export interface CreateContextInput {
-  /** Absolute path to the workspace root. */
-  workspacePath: string;
+	/** Absolute path to the workspace root. */
+	workspacePath: string;
 
-  /** Opaque session identifier. */
-  sessionId: string;
+	/** Opaque session identifier. */
+	sessionId: string;
 
-  /** Client-advertised capabilities. Defensively copied during creation. */
-  capabilities: readonly string[];
+	/** Client-advertised capabilities. Defensively copied during creation. */
+	capabilities: readonly string[];
 
-  /** Unique request identifier. */
-  requestId: string;
+	/** Unique request identifier. */
+	requestId: string;
 
-  /** Cancellation signal for this request. */
-  signal: AbortSignal;
+	/** Cancellation signal for this request. */
+	signal: AbortSignal;
 
-  /** Logger for diagnostic output. */
-  logger: ContextLogger;
+	/** Logger for diagnostic output. */
+	logger: ContextLogger;
 
-  /** Progress reporter callback. */
-  progress: ProgressReporter;
+	/** Progress reporter callback. */
+	progress: ProgressReporter;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,34 +144,34 @@ export interface CreateContextInput {
  * Used when MCP logging is not available (e.g., in tests or standalone mode).
  */
 export function createConsoleLogger(prefix = ""): ContextLogger {
-  const tag = prefix ? `[${prefix}] ` : "";
-  return {
-    debug: (_message, _context) => {},
-    info: (_message, _context) => {},
-    warn: (message, context) => {
-      console.warn(`${tag}WARN: ${message}`, context ?? "");
-    },
-    error: (message, context) => {
-      console.error(`${tag}ERROR: ${message}`, context ?? "");
-    },
-  };
+	const tag = prefix ? `[${prefix}] ` : "";
+	return {
+		debug: (_message, _context) => {},
+		info: (_message, _context) => {},
+		warn: (message, context) => {
+			console.warn(`${tag}WARN: ${message}`, context ?? "");
+		},
+		error: (message, context) => {
+			console.error(`${tag}ERROR: ${message}`, context ?? "");
+		},
+	};
 }
 
 /**
  * No-op progress reporter for when progress reporting is not supported.
  */
 export const noOpProgress: ProgressReporter = () => {
-  /* intentionally empty */
+	/* intentionally empty */
 };
 
 /**
  * No-op logger for testing or silent operation.
  */
 export const noOpLogger: ContextLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
+	debug: () => {},
+	info: () => {},
+	warn: () => {},
+	error: () => {},
 };
 
 // ---------------------------------------------------------------------------
@@ -213,16 +205,16 @@ export const noOpLogger: ContextLogger = {
  * ```
  */
 export function createToolContext(input: CreateContextInput): ToolContext {
-  const ctx: ToolContext = {
-    workspacePath: input.workspacePath,
-    sessionId: input.sessionId,
-    capabilities: Object.freeze([...input.capabilities]),
-    timestamp: Date.now(),
-    requestId: input.requestId,
-    signal: input.signal,
-    logger: input.logger,
-    progress: input.progress,
-  };
+	const ctx: ToolContext = {
+		workspacePath: input.workspacePath,
+		sessionId: input.sessionId,
+		capabilities: Object.freeze([...input.capabilities]),
+		timestamp: Date.now(),
+		requestId: input.requestId,
+		signal: input.signal,
+		logger: input.logger,
+		progress: input.progress,
+	};
 
-  return Object.freeze(ctx);
+	return Object.freeze(ctx);
 }
