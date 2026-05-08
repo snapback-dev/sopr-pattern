@@ -1,3 +1,5 @@
+<p><img width="2172" height="724" alt="vreko-lockup" src="https://github.com/user-attachments/assets/fddd90b6-4bb5-4985-8f73-3b63060c526f" /></p>
+
 # Service-Oriented Protocol Router (SOPR)
 
 > A token-efficient alternative to multi-agent architectures for deterministic, tool-heavy AI workflows
