@@ -78,7 +78,7 @@ describe("Standalone Execution — @sopr/mcp-server", () => {
       expect(sourceFiles.length).toBeGreaterThan(20);
     });
 
-    it("src/ has NO @snapback/* imports (proprietary scopes forbidden)", () => {
+    it("src/ has no imports from a proprietary scope", () => {
       const violations: Array<{ file: string; line: number; raw: string }> = [];
       const forbiddenPattern = /(?:import|export)\s+.*from\s+["']@snapback\//;
 
