@@ -17,7 +17,7 @@ import type { ContextLogger, LogContext } from "../contracts/context.js";
  *
  * @example
  * ```ts
- * import { ConsoleLoggerAdapter } from "@snapback-oss/sopr-mcp";
+ * import { ConsoleLoggerAdapter } from "@sopr/mcp-server";
  *
  * const logger = new ConsoleLoggerAdapter("my-server");
  * logger.warn("Connection retrying", { attempt: 3 });
@@ -25,25 +25,25 @@ import type { ContextLogger, LogContext } from "../contracts/context.js";
  * ```
  */
 export class ConsoleLoggerAdapter implements ContextLogger {
-	private readonly prefix: string;
+  private readonly prefix: string;
 
-	constructor(prefix = "") {
-		this.prefix = prefix ? `[${prefix}] ` : "";
-	}
+  constructor(prefix = "") {
+    this.prefix = prefix ? `[${prefix}] ` : "";
+  }
 
-	debug(_message: string, _context?: LogContext): void {
-		// Suppressed by default for production use
-	}
+  debug(_message: string, _context?: LogContext): void {
+    // Suppressed by default for production use
+  }
 
-	info(_message: string, _context?: LogContext): void {
-		// Suppressed by default for production use
-	}
+  info(_message: string, _context?: LogContext): void {
+    // Suppressed by default for production use
+  }
 
-	warn(message: string, context?: LogContext): void {
-		console.warn(`${this.prefix}WARN: ${message}`, context ?? "");
-	}
+  warn(message: string, context?: LogContext): void {
+    console.warn(`${this.prefix}WARN: ${message}`, context ?? "");
+  }
 
-	error(message: string, context?: LogContext): void {
-		console.error(`${this.prefix}ERROR: ${message}`, context ?? "");
-	}
+  error(message: string, context?: LogContext): void {
+    console.error(`${this.prefix}ERROR: ${message}`, context ?? "");
+  }
 }

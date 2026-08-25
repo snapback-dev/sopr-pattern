@@ -17,7 +17,7 @@ import type { IStorage } from "../contracts/storage.js";
  *
  * @example
  * ```ts
- * import { InMemoryStorage } from "@snapback-oss/sopr-mcp";
+ * import { InMemoryStorage } from "@sopr/mcp-server";
  *
  * const storage = new InMemoryStorage();
  * await storage.set("key", "value");
@@ -25,37 +25,37 @@ import type { IStorage } from "../contracts/storage.js";
  * ```
  */
 export class InMemoryStorage implements IStorage {
-	private readonly store = new Map<string, string>();
+  private readonly store = new Map<string, string>();
 
-	async get(key: string): Promise<string | null> {
-		return this.store.get(key) ?? null;
-	}
+  async get(key: string): Promise<string | null> {
+    return this.store.get(key) ?? null;
+  }
 
-	async set(key: string, value: string): Promise<void> {
-		this.store.set(key, value);
-	}
+  async set(key: string, value: string): Promise<void> {
+    this.store.set(key, value);
+  }
 
-	async delete(key: string): Promise<void> {
-		this.store.delete(key);
-	}
+  async delete(key: string): Promise<void> {
+    this.store.delete(key);
+  }
 
-	async list(prefix?: string): Promise<string[]> {
-		const keys: string[] = [];
-		for (const key of this.store.keys()) {
-			if (prefix === undefined || key.startsWith(prefix)) {
-				keys.push(key);
-			}
-		}
-		return keys;
-	}
+  async list(prefix?: string): Promise<string[]> {
+    const keys: string[] = [];
+    for (const key of this.store.keys()) {
+      if (prefix === undefined || key.startsWith(prefix)) {
+        keys.push(key);
+      }
+    }
+    return keys;
+  }
 
-	/** Returns the current number of stored entries. For testing/diagnostics. */
-	get size(): number {
-		return this.store.size;
-	}
+  /** Returns the current number of stored entries. For testing/diagnostics. */
+  get size(): number {
+    return this.store.size;
+  }
 
-	/** Clear all entries. For testing. */
-	clear(): void {
-		this.store.clear();
-	}
+  /** Clear all entries. For testing. */
+  clear(): void {
+    this.store.clear();
+  }
 }

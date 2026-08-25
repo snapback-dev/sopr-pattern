@@ -1,9 +1,10 @@
 # The Service-Oriented Protocol Router Pattern (SOPR)
 ## A Token-Efficient Alternative to Multi-Agent Architectures for AI Tool Systems
 
-*How we achieved ~60% context reduction and simpler debugging without agent-to-agent communication overhead.*
+*Consolidating a tool surface and simplifying debugging without agent-to-agent
+communication overhead.*
 
-- **Status**: Production-proven at SnapBack.
+- **Status**: Reference specification with a working implementation in this repository. No published benchmark.
 - **Version**: v1.0.0
 - **Last updated**: 2026-02-03
 
@@ -20,12 +21,19 @@ Protocol Server → Tool Registry → Mode-Based Tools → Pure Services
      (routes)       (validates)      (orchestrates)     (executes)
 ```
 
-SOPR has been validated in production in SnapBack, an AI-native code protection platform, where it:
+SOPR was developed inside a proprietary developer-intelligence MCP server and is
+implemented here as a brand-neutral reference. It:
 
-- Reduced tool discovery overhead by ~65%.
-- Reduced per-request context from 5000+ tokens to ~1500 tokens (~70% reduction).
-- Consolidated 24 separate tools into 7 mode-based tools (71% reduction).
-- Simplified debugging with single-process stack traces and strong type boundaries.
+- Replaces one-tool-per-operation with a small set of mode-dispatched tools —
+  8 tools carrying 34 modes in this implementation, derived programmatically in
+  [`src/contracts/tool-map.ts`](./src/contracts/tool-map.ts).
+- Keeps debugging in a single process with ordinary stack traces and typed boundaries.
+- Reduces tool-discovery context, because the model sees tool descriptions rather than
+  one description per operation. How much depends on your baseline; see
+  [§7 Cost Impact Analysis](#7-cost-impact-analysis) for the model.
+
+The originating measurements were taken against a private MCP server and have never
+been published in reproducible form, so they are not restated here as results.
 
 This document is the **reference specification** for SOPR.
 
@@ -126,11 +134,17 @@ Compared to multi-agent systems, everything here is **in-process function calls*
 
 ---
 
-## 4. SnapBack Case Study
+## 4. Worked example: consolidating a 24-tool surface
 
-SnapBack is an AI-native code protection platform. Its MCP server originally exposed **24 tools** with a large shared context.
+> **Provenance.** This example is drawn from the private MCP server SOPR was extracted
+> from (originally SnapBack, now [Vreko](https://vreko.dev)). That server is not public,
+> so the *before* state cannot be inspected and the figures in §4.3 cannot be
+> reproduced by a reader. It is included because the shape of the consolidation is the
+> useful part; the numbers are not offered as evidence.
 
-### 4.1 Before SOPR: 24 Tools
+The server originally exposed **24 tools** sharing one large context.
+
+### 4.1 Before: 24 tools
 
 ```text
 24 Tools:
@@ -146,7 +160,7 @@ Context per request: ~5000+ tokens
 Tool discovery overhead: 24 tools × ~50 tokens/tool = 1200 tokens
 ```
 
-### 4.2 After SOPR: 7 Mode-Based Tools
+### 4.2 After: 7 mode-based tools
 
 ```text
 7 Tools:
@@ -167,20 +181,27 @@ Underlying services:
 └── GraphService
 ```
 
-### 4.3 Measured Results
+### 4.3 Reported figures — not reproducible
 
-| Metric | Before | After | Reduction |
-|--------|--------|-------|-----------|
-| Tool count | 24 | 7 | 71% |
-| Tool discovery tokens | 1200 | 420 | 65% |
-| Context per request | 5000+ | ~1500 | 70% |
-| Avg response time | 340ms | 180ms | 47% |
+| Metric | Before | After |
+|--------|--------|-------|
+| Tool count | 24 | 7 |
+| Tool discovery tokens | 1200 | 420 |
+| Context per request | 5000+ | ~1500 |
+| Avg response time | 340ms | 180ms |
 
-### 4.4 Baseline Matters
+**Read these as history, not as evidence.** They were recorded against a private server
+with no published methodology, no harness and no released dataset. Nothing in this
+repository reproduces them. Do not cite them as a benchmark result for SOPR.
 
-SOPR’s benefits are largest in **tool-heavy architectures**:
+For a claim you *can* check, see the tool/mode counts derived from
+[`src/contracts/tool-map.ts`](./src/contracts/tool-map.ts).
 
-| Your Tool Count | Expected Savings | Worth the Effort? |
+### 4.4 Baseline matters
+
+The table below is an **estimate from the cost model in §7**, not a measurement:
+
+| Your Tool Count | Modelled Savings | Worth the Effort? |
 |-----------------|------------------|-------------------|
 | 3–5 tools | ~25% | Probably not |
 | 6–10 tools | ~50% | Yes, if latency-sensitive |
@@ -573,8 +594,8 @@ For Mermaid diagrams of this decision framework and the overall architecture, se
 
 If you reference SOPR in your own documentation, blog posts, or papers, we suggest:
 
-> Service-Oriented Protocol Router (SOPR) pattern, developed at SnapBack for AI-native developer tooling.  
-> Repository: https://github.com/snapback-dev/sopr-pattern
+> Service-Oriented Protocol Router (SOPR) pattern, for deterministic, tool-heavy AI developer tooling.  
+> Repository: https://github.com/vreko-dev/sopr-mcp
 
 You can also link directly to this document (`PATTERN.md`) for implementation details.
 

@@ -17,28 +17,30 @@ import type { ITierRouter, RouteDecision, TierMode } from "../contracts/router.j
  *
  * @example
  * ```ts
- * import { LocalRouter } from "@snapback-oss/sopr-mcp";
+ * import { LocalRouter } from "@sopr/mcp-server";
  *
  * const router = new LocalRouter();
  * const decision = await router.route("snap"); // { action: "local" }
  * ```
  */
 export class LocalRouter implements ITierRouter {
-	async route(_toolName: string): Promise<RouteDecision> {
-		return { action: "local" };
-	}
+  async route(_toolName: string): Promise<RouteDecision> {
+    return { action: "local" };
+  }
 
-	async getMode(): Promise<TierMode> {
-		return "free";
-	}
+  async getMode(): Promise<TierMode> {
+    return "free";
+  }
 
-	async delegate(_toolName: string, _args: unknown): Promise<unknown> {
-		throw new Error("LocalRouter does not support delegation. Configure a remote router to delegate tool calls.");
-	}
+  async delegate(_toolName: string, _args: unknown): Promise<unknown> {
+    throw new Error(
+      "LocalRouter does not support delegation. Configure a remote router to delegate tool calls.",
+    );
+  }
 
-	createUpgradePrompt(toolName: string): unknown {
-		return {
-			message: `${toolName} is running in local mode. Configure a remote router for enhanced capabilities.`,
-		};
-	}
+  createUpgradePrompt(toolName: string): unknown {
+    return {
+      message: `${toolName} is running in local mode. Configure a remote router for enhanced capabilities.`,
+    };
+  }
 }

@@ -16,7 +16,7 @@ import type { ITelemetry, TelemetryEvent } from "../contracts/telemetry.js";
  *
  * @example
  * ```ts
- * import { NoOpTelemetry } from "@snapback-oss/sopr-mcp";
+ * import { NoOpTelemetry } from "@sopr/mcp-server";
  *
  * const telemetry = new NoOpTelemetry();
  * telemetry.track({ event: "tool_call", tool: "snap", mode: "start", tier: "free", durationMs: 100, success: true });
@@ -24,11 +24,11 @@ import type { ITelemetry, TelemetryEvent } from "../contracts/telemetry.js";
  * ```
  */
 export class NoOpTelemetry implements ITelemetry {
-	track(_event: TelemetryEvent): void {
-		// Intentionally empty — no-op adapter
-	}
+  track(_event: TelemetryEvent): void {
+    // Intentionally empty — no-op adapter
+  }
 
-	async shutdown(): Promise<void> {
-		// Nothing to flush
-	}
+  async shutdown(): Promise<void> {
+    // Nothing to flush
+  }
 }

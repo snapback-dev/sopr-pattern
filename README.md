@@ -4,7 +4,8 @@
 
 > A token-efficient alternative to multi-agent architectures for deterministic, tool-heavy AI workflows
 >
-> **Status**: Production pattern, currently in active use at SnapBack.
+> **Status**: An architecture pattern extracted from a developer-tooling MCP server,
+> published here as a working reference implementation. No benchmark is published.
 > **Audience**: Engineers building AI-powered developer tools (MCP/ACP servers, IDE extensions, CLIs, CLIs, and similar tools).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -13,13 +14,15 @@
 
 Traditional multi-agent architectures for AI tooling suffer from message-passing overhead, context duplication, and debugging complexity. **SOPR (Service-Oriented Protocol Router)** achieves similar benefits (separation of concerns, scalability, resilience) using direct function composition instead of agent-to-agent messaging.
 
-SOPR is validated in production at [SnapBack](https://snapback.dev), where it reduced tool context overhead by ~60% and consolidated 24 tools down to 7.
+This repository implements SOPR directly. The consolidation it produces is checkable from the source: `src/contracts/tool-map.ts` exposes **8 tools carrying 34 modes**, and `TOOL_COUNT` / `TOTAL_MODE_COUNT` are derived from that map rather than written by hand — so the numbers in this README cannot drift from the code without a test failing.
 
 ## Research Context
 
-SOPR was developed inside SnapBack, an AI-native code protection platform, as part of systematic experiments on reducing tool-calling cost and latency while improving debuggability and type safety. This repository codifies that pattern as a **living, versioned artifact**, not just a one-off blog post.
+SOPR was developed inside a proprietary developer-intelligence product (originally named SnapBack, now [Vreko](https://vreko.dev)) while working on tool-calling cost, latency, debuggability and type safety. This repository codifies the pattern as a **living, versioned artifact** rather than a one-off blog post.
 
-If you are building serious AI tooling (MCP/ACP servers, IDE extensions, CLIs) with 10+ tools, SOPR gives you a production-tested architecture to start from.
+The originating measurements were taken against that product's private MCP server and have never been published in reproducible form, so they are not repeated here as results.
+
+If you are building AI tooling (MCP/ACP servers, IDE extensions, CLIs) with 10+ tools, SOPR gives you a worked architecture to start from — with the caveat that the savings you get depend entirely on your baseline.
 
 ---
 
@@ -58,18 +61,24 @@ For full implementation details, see [`PATTERN.md`](./PATTERN.md).
 
 ---
 
-## SnapBack Case Study
+## What this repository establishes
 
-Real production metrics from [SnapBack](https://snapback.dev):
+The pattern below is implemented here and covered by tests. What you can check without
+taking anything on faith:
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Tool count | 24 | 7 | **71%** |
-| Tool discovery tokens | 1200 | 420 | **65%** |
-| Context per request | 5000+ | ~1500 | **70%** |
-| Avg response time | 340ms | 180ms | **47%** |
+| Claim | Where to check |
+|---|---|
+| Mode-based dispatch replaces one-tool-per-operation | [`src/contracts/tool-map.ts`](./src/contracts/tool-map.ts) — 8 tools, 34 modes |
+| Protocol servers route and validate; they do not execute | [`src/protocol/server.ts`](./src/protocol/server.ts) |
+| Services are pure and independently testable | [`src/contracts/services.ts`](./src/contracts/services.ts) and the unit suite |
+| The OSS layer contains no proprietary references | [`tests/integration/oss-ip-guard.test.ts`](./tests/integration/oss-ip-guard.test.ts) |
 
-**Note**: Results depend on your baseline. See the [full cost analysis](./PATTERN.md#cost-impact-analysis) for calculations and assumptions.
+**What it does not establish.** No token-reduction, latency or cost figure is published
+for SOPR, because no reproducible benchmark has been published to support one. The
+before/after numbers previously shown here came from a private MCP server that cannot
+be inspected, so they were not evidence a reader could check.
+
+See the [cost analysis](./PATTERN.md#cost-impact-analysis) for the calculation method and its assumptions.
 
 ---
 
@@ -131,15 +140,15 @@ See [`PATTERN.md`](./PATTERN.md#implementation-guide) for a full implementation 
 
 ---
 
-## Token Savings Depend on Baseline
+## Token savings depend on your baseline
 
-SOPR’s benefits scale with tool count and baseline architecture.
+The figures below are **estimates from the cost model in [`PATTERN.md`](./PATTERN.md#cost-impact-analysis)**, not measurements. Treat them as a sizing heuristic and measure your own baseline before relying on them.
 
 | Server Type | Tool Count | Expected Savings | Recommendation |
 |-------------|-----------|------------------|----------------|
 | Simple API wrapper | 3-5 | ~25% | Monolithic may be simpler |
 | Standard MCP server | 6-10 | ~50% | SOPR beneficial |
-| DevTool (SnapBack) | 15-25 | ~60% | SOPR strongly recommended |
+| Developer tooling | 15-25 | ~60% | SOPR strongly recommended |
 | Complex workflow | 25+ | ~60%+ | SOPR necessary |
 
 **Rule of thumb**: If you have <8 tools, SOPR might be overkill. If you have >12 tools and care about latency/cost, SOPR becomes a strong default.
@@ -182,8 +191,7 @@ Mermaid diagrams for SOPR’s architecture, request flow, mode-based dispatch, a
 
 - **Pattern whitepaper**: [`PATTERN.md`](./PATTERN.md)
 - **Architecture diagrams**: [`diagrams/README.md`](./diagrams/README.md)
-- **SnapBack product**: [snapback.dev](https://snapback.dev)
-- **Blog article**: [Full SOPR article](https://snapback.dev/blog/sopr-pattern)
+- **Originating product**: [vreko.dev](https://vreko.dev) (formerly SnapBack)
 
 ---
 
@@ -195,6 +203,6 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ## Credits
 
-SOPR was developed while building [SnapBack](https://snapback.dev), an AI-native code protection platform. We evolved from 24 tools with monolithic context to 7 consolidated tools with ~60% token reduction.
+SOPR was developed while building the product now called [Vreko](https://vreko.dev), moving from one tool per operation with a shared monolithic context to a small set of mode-dispatched tools. This repository is the extracted, brand-neutral reference implementation.
 
-**Important**: SOPR is validated for deterministic, tool-heavy developer tooling. It is not a universal replacement for all multi-agent architectures; use the [decision framework](./PATTERN.md#decision-framework) to evaluate fit for your system.
+**Important**: SOPR is designed for deterministic, tool-heavy developer tooling. It is not a universal replacement for all multi-agent architectures; use the [decision framework](./PATTERN.md#decision-framework) to evaluate fit for your system.

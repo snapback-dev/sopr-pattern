@@ -35,18 +35,18 @@ import { createPulseHandlers, type PulseDeps } from "./tools/pulse.js";
  * @returns A registrable ToolDefinition for the pulse tool.
  */
 export function createPulseToolDef(deps: PulseDeps): ToolDefinition<PulseInput> {
-	return {
-		name: "pulse",
-		description: "System health. Modes: health (aggregate service and codebase status).",
-		inputSchema: PulseInputSchema,
-		annotations: {
-			title: "System Health",
-			readOnlyHint: true,
-			destructiveHint: false,
-			idempotentHint: true,
-		},
-		modes: createPulseHandlers(deps),
-	};
+  return {
+    name: "pulse",
+    description: "System health. Modes: health (aggregate service and codebase status).",
+    inputSchema: PulseInputSchema,
+    annotations: {
+      title: "System Health",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
+    modes: createPulseHandlers(deps),
+  };
 }
 
 /**
@@ -58,18 +58,19 @@ export function createPulseToolDef(deps: PulseDeps): ToolDefinition<PulseInput> 
  * @returns A registrable ToolDefinition for the help tool.
  */
 export function createHelpToolDef(): ToolDefinition<HelpInput> {
-	return {
-		name: "help",
-		description: "Tool discovery and documentation. Modes: tools, wire, modes, thresholds, decision, status, all.",
-		inputSchema: HelpInputSchema,
-		annotations: {
-			title: "Help & Discovery",
-			readOnlyHint: true,
-			destructiveHint: false,
-			idempotentHint: true,
-		},
-		modes: createHelpHandlers(),
-	};
+  return {
+    name: "help",
+    description:
+      "Tool discovery and documentation. Modes: tools, wire, modes, thresholds, decision, status, all.",
+    inputSchema: HelpInputSchema,
+    annotations: {
+      title: "Help & Discovery",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
+    modes: createHelpHandlers(),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -82,7 +83,7 @@ export function createHelpToolDef(): ToolDefinition<HelpInput> {
  * Pulse requires service dependencies; help has none.
  */
 export interface ReadOnlyToolDeps {
-	readonly pulse: PulseDeps;
+  readonly pulse: PulseDeps;
 }
 
 /**
@@ -97,7 +98,7 @@ export interface ReadOnlyToolDeps {
  *
  * @example
  * ```ts
- * import { createReadOnlyTools, createSOPRServer } from "@snapback-oss/sopr-mcp";
+ * import { createReadOnlyTools, createSOPRServer } from "@sopr/mcp-server";
  *
  * const tools = createReadOnlyTools({
  *   pulse: {
@@ -116,7 +117,7 @@ export interface ReadOnlyToolDeps {
  * ```
  */
 export function createReadOnlyTools(deps: ReadOnlyToolDeps): ToolDefinition[] {
-	// Cast to unparameterized ToolDefinition for array compatibility.
-	// Safe: the ToolRegistry validates inputs via .safeParse() before dispatch.
-	return [createPulseToolDef(deps.pulse) as ToolDefinition, createHelpToolDef() as ToolDefinition];
+  // Cast to unparameterized ToolDefinition for array compatibility.
+  // Safe: the ToolRegistry validates inputs via .safeParse() before dispatch.
+  return [createPulseToolDef(deps.pulse) as ToolDefinition, createHelpToolDef() as ToolDefinition];
 }

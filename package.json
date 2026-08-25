@@ -1,7 +1,25 @@
 {
   "name": "@sopr/mcp-server",
   "version": "0.1.0",
-  "description": "Production MCP server built on the Service-Oriented Protocol Router (SOPR) pattern",
+  "description": "Reference MCP server implementing the Service-Oriented Protocol Router (SOPR) pattern",
+  "homepage": "https://github.com/vreko-dev/sopr-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vreko-dev/sopr-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vreko-dev/sopr-mcp/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "sopr",
+    "mcp",
+    "model-context-protocol",
+    "protocol-router",
+    "tool-routing",
+    "ai-tooling",
+    "architecture-pattern"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -25,7 +43,10 @@
     "zod": "^3.24.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["lefthook", "esbuild"]
+    "onlyBuiltDependencies": [
+      "lefthook",
+      "esbuild"
+    ]
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.15",
@@ -35,6 +56,5 @@
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
-  },
-  "license": "MIT"
+  }
 }
